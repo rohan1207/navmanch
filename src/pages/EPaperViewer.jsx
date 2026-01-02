@@ -1,0 +1,261 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { FaChevronUp, FaChevronDown, FaArrowLeft } from 'react-icons/fa';
+import { getEpaper } from '../utils/api';
+import EPaperPage2 from '../components/EPaperPage2';
+import ShareButtons from '../components/ShareButtons';
+
+const EPaperViewer = ({ epaperId }) => {
+  const router = useRouter();
+  const [epaper, setEpaper] = useState(null);
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const sidebarRef = useRef(null);
+  const mainContentRef = useRef(null);
+
+  useEffect(() => {
+    const loadEpaper = async () => {
+      setLoading(true);
+      try {
+        const found = await getEpaper(epaperId);
+        
+        if (found) {
+          console.log('✅ Found epaper:', found.title);
+          setEpaper(found);
+          if (found.pages && found.pages.length > 0) {
+            setSelectedPage(found.pages[0]);
+            setCurrentPageIndex(0);
+          }
+          setLoading(false);
+        } else {
+          console.log('❌ Epaper not found for id:', epaperId);
+          setLoading(false);
+          setTimeout(() => router.push('/epaper'), 500);
+        }
+      } catch (error) {
+        console.error('Error loading e-paper:', error);
+        setLoading(false);
+        setTimeout(() => router.push('/epaper'), 500);
+      }
+    };
+    
+    if (epaperId) {
+      loadEpaper();
+    } else {
+      router.push('/epaper');
+    }
+  }, [epaperId, router]);
+
+  const handlePageClick = (page, index) => {
+    setSelectedPage(page);
+    setCurrentPageIndex(index);
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const scrollSidebar = (direction) => {
+    if (sidebarRef.current) {
+      const scrollAmount = 200;
+      sidebarRef.current.scrollBy({
+        top: direction === 'up' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const frontendBase = 'https://navmanchnews.com';
+  
+  let epaperIdentifier;
+  if (epaper) {
+    if (epaper.id !== undefined && epaper.id !== null) {
+      epaperIdentifier = String(epaper.id);
+    } else if (epaper._id) {
+      epaperIdentifier = String(epaper._id);
+    } else {
+      epaperIdentifier = epaperId;
+    }
+  } else {
+    epaperIdentifier = epaperId;
+  }
+  
+  const shareUrl = `${frontendBase}/epaper/${epaperIdentifier}`;
+  
+  const getCleanEpaperTitle = () => {
+    if (!epaper || !epaper.title) return 'ई-पेपर';
+    const title = epaper.title.trim();
+    if (title === '' || title.toLowerCase() === 'untitled') {
+      return 'ई-पेपर';
+    }
+    return title;
+  };
+  
+  const shareTitle = epaper ? `${getCleanEpaperTitle()} - नव मंच` : 'नव मंच ई-पेपर';
+  const shareDescription = epaper 
+    ? `${getCleanEpaperTitle()} - ${epaper.date ? new Date(epaper.date).toLocaleDateString('mr-IN') : ''}`
+    : 'नव मंच ई-पेपर';
+  
+  const getAbsoluteImageUrl = (imgUrl) => {
+    if (!imgUrl) return '';
+    if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
+      return imgUrl;
+    }
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`}`;
+    }
+    return imgUrl;
+  };
+  
+  const shareImage = getAbsoluteImageUrl(selectedPage?.image || epaper?.thumbnail || '');
+
+  if (loading || !epaper) {
+    return (
+      <div className="min-h-screen bg-subtleGray flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-newsRed mx-auto mb-4"></div>
+          <p className="text-metaGray">ई-पेपर लोड होत आहे...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-cleanWhite lg:bg-subtleGray">
+      {/* Desktop Header */}
+      <div className="hidden lg:block bg-cleanWhite border-b-2 border-subtleGray py-3 sm:py-4 sticky top-0 z-40 shadow-sm">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-deepCharcoal leading-tight">{getCleanEpaperTitle()}</h1>
+              <p className="text-xs sm:text-sm text-metaGray mt-1">{epaper.date}</p>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <ShareButtons
+                title={shareTitle}
+                description={shareDescription}
+                image={shareImage}
+                url={shareUrl}
+              />
+              <Link
+                href="/epaper"
+                className="text-xs sm:text-sm text-metaGray hover:text-deepCharcoal transition-colors font-semibold whitespace-nowrap"
+              >
+                मागे जा
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-cleanWhite border-b border-subtleGray py-2 fixed top-0 left-0 right-0 z-50 shadow-sm">
+        <div className="container mx-auto px-3">
+          <div className="flex items-center justify-between">
+            <Link
+              href="/epaper"
+              className="flex items-center gap-2 text-deepCharcoal hover:text-newsRed transition-colors font-semibold text-sm"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              <span>मागे</span>
+            </Link>
+            <ShareButtons
+              title={shareTitle}
+              description={shareDescription}
+              image={shareImage}
+              url={shareUrl}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-0 lg:px-3 sm:px-4 py-0 lg:py-4 sm:py-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Left Sidebar - Page Thumbnails (Desktop only) */}
+          <div className="hidden lg:block w-32 flex-shrink-0">
+            <div className="bg-cleanWhite rounded-lg border border-subtleGray p-3 sticky top-24">
+              <button
+                onClick={() => scrollSidebar('up')}
+                className="w-full mb-2 p-2 bg-subtleGray hover:bg-subtleGray/80 rounded-lg transition-colors flex items-center justify-center"
+              >
+                <FaChevronUp className="w-4 h-4 text-deepCharcoal" />
+              </button>
+
+              <div ref={sidebarRef} className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-subtleGray">
+                {epaper.pages.map((page, index) => (
+                  <div
+                    key={page.pageNo}
+                    className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      currentPageIndex === index
+                        ? 'border-newsRed shadow-lg scale-105'
+                        : 'border-subtleGray hover:border-newsRed/50 hover:shadow-md'
+                    }`}
+                  >
+                    <button
+                      onClick={() => handlePageClick(page, index)}
+                      className="w-full h-full"
+                    >
+                      <img
+                        src={page.image}
+                        alt={`Page ${page.pageNo}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-cleanWhite text-xs font-semibold py-1.5 text-center">
+                      पृष्ठ {page.pageNo}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => scrollSidebar('down')}
+                className="w-full mt-2 p-2 bg-subtleGray hover:bg-subtleGray/80 rounded-lg transition-colors flex items-center justify-center"
+              >
+                <FaChevronDown className="w-4 h-4 text-deepCharcoal" />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div ref={mainContentRef} className="flex-1">
+            {/* Desktop: Show selected page only */}
+            <div className="hidden lg:block">
+              {selectedPage && (
+                <div className="bg-cleanWhite rounded-lg border border-subtleGray p-4 md:p-6">
+                  <EPaperPage2
+                    page={selectedPage}
+                    epaperId={epaperId}
+                    epaperSlug={epaper?.slug}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Mobile: Pages stacked normally */}
+            <div className="lg:hidden pt-12 space-y-0">
+              {epaper.pages.map((page, index) => (
+                <div key={page.pageNo} className="w-full bg-cleanWhite">
+                  <EPaperPage2
+                    page={page}
+                    epaperId={epaperId}
+                    epaperSlug={epaper?.slug}
+                    isMobile={true}
+                    totalPages={epaper.pages.length}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EPaperViewer;
+

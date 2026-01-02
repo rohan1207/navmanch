@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Disallow admin panel
+Disallow: /admin
+Disallow: /admin-panel
+
+# Sitemap location
+Sitemap: https://navmanchnews.com/sitemap.xml
+

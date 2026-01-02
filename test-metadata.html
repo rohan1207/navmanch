@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Social Sharing Metadata</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border-left: 4px solid #4CAF50;
+        }
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #45a049; }
+        .meta-tag {
+            background: #e3f2fd;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Social Sharing Metadata Tester</h1>
+    
+    <div class="test-section">
+        <h2>Test Epaper Metadata</h2>
+        <p>Enter an epaper ID to test:</p>
+        <input type="text" id="epaperId" class="url-input" placeholder="e.g., 1767180904776" value="1767180904776">
+        <button onclick="testEpaper()">Test Epaper Metadata</button>
+        <div id="epaperResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Section Metadata</h2>
+        <p>Enter epaper ID, page number, and section ID:</p>
+        <input type="text" id="sectionEpaperId" class="url-input" placeholder="Epaper ID" value="1767180904776">
+        <input type="text" id="pageNo" class="url-input" placeholder="Page No" value="1">
+        <input type="text" id="sectionId" class="url-input" placeholder="Section ID" value="1767181219346">
+        <button onclick="testSection()">Test Section Metadata</button>
+        <div id="sectionResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 How to Test Locally</h2>
+        <ol>
+            <li><strong>View Page Source:</strong> Open the epaper/section page in browser and press Ctrl+U (or Cmd+U on Mac)</li>
+            <li><strong>Check &lt;head&gt; tags:</strong> Look for Open Graph and Twitter Card meta tags</li>
+            <li><strong>Use Browser DevTools:</strong> Open DevTools (F12) → Network tab → Reload page → Check response headers</li>
+            <li><strong>Test with curl:</strong> <code>curl http://localhost:3000/epaper/1767180904776 | grep -i "og:"</code></li>
+        </ol>
+        <p><strong>⚠️ Note:</strong> Social platforms (Facebook, WhatsApp) cannot access localhost. For actual sharing preview, you need to:</p>
+        <ul>
+            <li>Deploy to production (navmanchnews.com)</li>
+            <li>OR use ngrok to expose localhost: <code>ngrok http 3000</code></li>
+        </ul>
+    </div>
+
+    <script>
+        async function testEpaper() {
+            const epaperId = document.getElementById('epaperId').value;
+            const resultDiv = document.getElementById('epaperResult');
+            resultDiv.innerHTML = '<p>Loading...</p>';
+            
+            try {
+                // Use API route to avoid CORS issues
+                const response = await fetch(`http://localhost:3000/api/test-metadata?type=epaper&epaperId=${epaperId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                resultDiv.innerHTML = `
+                    <h3>✅ Metadata Found:</h3>
+                    <div class="meta-tag"><strong>OG Image:</strong> ${data.openGraph?.image || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG Title:</strong> ${data.openGraph?.title || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG Description:</strong> ${data.openGraph?.description || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG URL:</strong> ${data.openGraph?.url || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG Image Size:</strong> ${data.openGraph?.imageWidth}x${data.openGraph?.imageHeight}</div>
+                    <div class="meta-tag"><strong>Twitter Image:</strong> ${data.twitter?.image || 'Not found'}</div>
+                    <div class="meta-tag"><strong>Twitter Card:</strong> ${data.twitter?.card || 'Not found'}</div>
+                    <h3>Full Metadata JSON:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <h3>Preview Image:</h3>
+                    <img src="${data.openGraph?.image}" alt="Preview" style="max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;" onerror="this.style.display='none'">
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p><p>Make sure Next.js server is running on port 3000!</p>`;
+            }
+        }
+
+        async function testSection() {
+            const epaperId = document.getElementById('sectionEpaperId').value;
+            const pageNo = document.getElementById('pageNo').value;
+            const sectionId = document.getElementById('sectionId').value;
+            const resultDiv = document.getElementById('sectionResult');
+            resultDiv.innerHTML = '<p>Loading...</p>';
+            
+            try {
+                // Use API route to avoid CORS issues
+                const response = await fetch(`http://localhost:3000/api/test-metadata?type=section&epaperId=${epaperId}&pageNo=${pageNo}&sectionId=${sectionId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                resultDiv.innerHTML = `
+                    <h3>✅ Metadata Found:</h3>
+                    <div class="meta-tag"><strong>OG Image:</strong> ${data.openGraph?.image || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG Title:</strong> ${data.openGraph?.title || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG Description:</strong> ${data.openGraph?.description || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG URL:</strong> ${data.openGraph?.url || 'Not found'}</div>
+                    <div class="meta-tag"><strong>OG Image Size:</strong> ${data.openGraph?.imageWidth}x${data.openGraph?.imageHeight}</div>
+                    <div class="meta-tag"><strong>Twitter Image:</strong> ${data.twitter?.image || 'Not found'}</div>
+                    <div class="meta-tag"><strong>Twitter Card:</strong> ${data.twitter?.card || 'Not found'}</div>
+                    <h3>Full Metadata JSON:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <h3>Preview Image:</h3>
+                    <img src="${data.openGraph?.image}" alt="Preview" style="max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;" onerror="this.style.display='none'">
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p><p>Make sure Next.js server is running on port 3000!</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
