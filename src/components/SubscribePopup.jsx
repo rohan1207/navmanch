@@ -51,6 +51,11 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         return () => clearTimeout(timer);
       } else {
         setShowWelcomeBack(false);
+        // Reset form when opening for new subscription
+        setFormData({ name: '', email: '', phone: '' });
+        setErrors({});
+        setIsSuccess(false);
+        setIsExistingUser(false);
       }
     } else {
       // Reset when popup closes
@@ -99,31 +104,7 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
       }));
     }
 
-    // Check if user exists when email or phone is filled
-    if ((name === 'email' || name === 'phone') && value.trim().length > 0) {
-      const email = name === 'email' ? value.trim() : formData.email.trim();
-      const phone = name === 'phone' ? value.replace(/\s/g, '') : formData.phone.replace(/\s/g, '');
-      
-      if (email || phone) {
-        setCheckingUser(true);
-        try {
-          const existing = await checkSubscriberExists(email, phone);
-          if (existing) {
-            setIsExistingUser(true);
-            setFormData(prev => ({
-              ...prev,
-              name: existing.name || prev.name
-            }));
-          } else {
-            setIsExistingUser(false);
-          }
-        } catch (error) {
-          console.error('Error checking user:', error);
-        } finally {
-          setCheckingUser(false);
-        }
-      }
-    }
+    // Don't check for existing users while typing - let them submit and handle it on submit
   };
 
   const handleSubmit = async (e) => {
@@ -153,6 +134,31 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if user is already subscribed (409 conflict)
+        if (response.status === 409 || data.message?.toLowerCase().includes('already subscribed')) {
+          // User already exists - just show welcome back and close
+          const existingSubscriber = await checkSubscriberExists(formData.email.trim(), formData.phone.replace(/\s/g, ''));
+          if (existingSubscriber) {
+            // Store subscription in localStorage
+            setSubscription({
+              name: existingSubscriber.name || formData.name.trim(),
+              email: existingSubscriber.email || formData.email.trim(),
+              phone: existingSubscriber.phone || formData.phone.replace(/\s/g, '')
+            });
+            setShowWelcomeBack(true);
+            setFormData(prev => ({
+              ...prev,
+              name: existingSubscriber.name || prev.name
+            }));
+            setIsSubmitting(false);
+            // Auto-close after 2 seconds
+            setTimeout(() => {
+              setShowWelcomeBack(false);
+              onClose();
+            }, 2000);
+            return;
+          }
+        }
         throw new Error(data.message || 'Subscription failed');
       }
 
@@ -226,15 +232,13 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
                   <FaEnvelope className="w-8 h-8 text-newsRed" />
                 </div>
                 <h2 className="text-2xl font-bold text-deepCharcoal mb-2">
-                  {isExistingUser ? 'पुन्हा भेट दिल्याबद्दल धन्यवाद!' : 'सबस्क्रिप्शन करा'}
+                  सबस्क्रिप्शन करा
                 </h2>
                 <p className="text-sm text-slateBody">
-                  {isExistingUser 
-                    ? 'आपण आधीच सबस्क्राईब केले आहे. कृपया तपशील पुष्टी करा.'
-                    : 'नवीन बातम्या आणि अपडेट्स मिळवण्यासाठी सबस्क्राईब करा'}
+                  नवीन बातम्या आणि अपडेट्स मिळवण्यासाठी सबस्क्राईब करा
                 </p>
-                {checkingUser && (
-                  <p className="text-xs text-metaGray mt-2">तपासत आहे...</p>
+                {errors.submit && (
+                  <p className="text-xs text-red-500 text-center mt-2">{errors.submit}</p>
                 )}
               </div>
 

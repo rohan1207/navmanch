@@ -16,50 +16,84 @@ export async function generateMetadata({ params }) {
     }
 
     // Get image - use first page or thumbnail
-    let imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail || `${baseUrl}/logo1.png`;
+    let imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
+    
+    if (!imageUrl) {
+      // Fallback to logo
+      imageUrl = `${baseUrl}/logo1.png`;
+    }
     
     // Ensure absolute URL
     if (imageUrl.startsWith('/')) {
       imageUrl = `${baseUrl}${imageUrl}`;
+    } else if (!imageUrl.startsWith('http')) {
+      imageUrl = `${baseUrl}/${imageUrl}`;
+    }
+    
+    // Force HTTPS
+    if (imageUrl.startsWith('http://')) {
+      imageUrl = imageUrl.replace('http://', 'https://');
     }
     
     // Optimize Cloudinary image for vertical share cards (1200x1600 for WhatsApp/Facebook)
     let optimizedImage = imageUrl;
-    if (imageUrl.includes('cloudinary.com') && imageUrl.includes('/image/upload/')) {
+    if (imageUrl && imageUrl.includes('cloudinary.com') && imageUrl.includes('/image/upload/')) {
       try {
-        // Parse Cloudinary URL: https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{version}/{public_id}
-        const urlParts = imageUrl.split('/image/upload/');
-        if (urlParts.length === 2) {
-          const cloudName = imageUrl.match(/res\.cloudinary\.com\/([^\/]+)/)?.[1];
-          const afterUpload = urlParts[1];
-          
-          // Extract public_id (everything after last slash, or if version exists, after second-to-last)
-          const parts = afterUpload.split('/');
-          let publicId = parts[parts.length - 1];
-          let version = '';
-          
-          // Check if version exists (format: v1234567890)
-          if (parts.length > 1 && parts[parts.length - 2].match(/^v\d+$/)) {
-            version = parts[parts.length - 2];
-            publicId = parts[parts.length - 1];
-          }
-          
-          // Build optimized URL with transformations
-          const transforms = 'w_1200,h_1600,c_fit,q_auto:best,f_auto';
-          if (version) {
-            optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`;
-          } else {
-            optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
+        // Cloudinary URL format examples:
+        // https://res.cloudinary.com/{cloud_name}/image/upload/v1234567890/{public_id}
+        // https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{public_id}
+        // https://res.cloudinary.com/{cloud_name}/image/upload/{public_id}
+        
+        const cloudNameMatch = imageUrl.match(/res\.cloudinary\.com\/([^\/]+)/);
+        if (!cloudNameMatch) {
+          throw new Error('Could not extract cloud name');
+        }
+        const cloudName = cloudNameMatch[1];
+        
+        // Find /image/upload/ position
+        const uploadIndex = imageUrl.indexOf('/image/upload/');
+        if (uploadIndex === -1) {
+          throw new Error('Invalid Cloudinary URL format');
+        }
+        
+        // Get everything after /image/upload/
+        const afterUpload = imageUrl.substring(uploadIndex + '/image/upload/'.length);
+        
+        // Split by / to find version and public_id
+        const segments = afterUpload.split('/');
+        
+        // Last segment is always the public_id (may include file extension)
+        let publicId = segments[segments.length - 1];
+        let version = '';
+        
+        // Check if second-to-last segment is a version (format: v1234567890)
+        if (segments.length >= 2) {
+          const potentialVersion = segments[segments.length - 2];
+          if (potentialVersion.match(/^v\d+$/)) {
+            version = potentialVersion;
           }
         }
+        
+        // Build optimized URL for vertical cards (1200x1600)
+        // Use c_fill to ensure proper aspect ratio for WhatsApp/Facebook
+        const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
+        
+        if (version) {
+          optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`;
+        } else {
+          optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
+        }
+        
+        console.log('✅ Optimized Cloudinary image for sharing:', optimizedImage);
       } catch (e) {
-        console.warn('Error optimizing Cloudinary URL:', e);
-        // Fallback to original URL
+        console.error('❌ Error optimizing Cloudinary URL:', e.message);
+        console.error('Original URL:', imageUrl);
+        // Use original URL as fallback
         optimizedImage = imageUrl;
       }
     }
     
-    // Force HTTPS
+    // Final HTTPS check
     if (optimizedImage.startsWith('http://')) {
       optimizedImage = optimizedImage.replace('http://', 'https://');
     }
@@ -116,10 +150,15 @@ export async function generateMetadata({ params }) {
       alternates: {
         canonical: epaperUrl,
       },
+      // Additional explicit meta tags for better compatibility
       other: {
+        'og:image': optimizedImage,
+        'og:image:url': optimizedImage,
         'og:image:width': '1200',
         'og:image:height': '1600',
         'og:image:type': 'image/jpeg',
+        'og:image:secure_url': optimizedImage,
+        'twitter:image:src': optimizedImage,
       },
     };
   } catch (error) {
