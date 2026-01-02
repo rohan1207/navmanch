@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaUser, FaEnvelope, FaPhone, FaCheckCircle } from 'react-icons/fa';
-import { setSubscription, isSubscribed, checkSubscriberExists } from '../utils/subscription';
+import { setSubscription, isSubscribed, checkSubscriberExists, getSubscriberName } from '../utils/subscription';
 
 const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +15,7 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isExistingUser, setIsExistingUser] = useState(false);
   const [checkingUser, setCheckingUser] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
 
   // Prevent body scroll when popup is open
   useEffect(() => {
@@ -28,14 +29,38 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
     };
   }, [isOpen]);
 
-  // Reset form when popup closes
+  // Check if already subscribed when popup opens
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      const subscribed = isSubscribed();
+      if (subscribed) {
+        // User is already subscribed - show welcome back and auto-close
+        setShowWelcomeBack(true);
+        const subscriberName = getSubscriberName();
+        setFormData(prev => ({
+          ...prev,
+          name: subscriberName || ''
+        }));
+        
+        // Auto-close after 2 seconds
+        const timer = setTimeout(() => {
+          setShowWelcomeBack(false);
+          onClose();
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      } else {
+        setShowWelcomeBack(false);
+      }
+    } else {
+      // Reset when popup closes
       setFormData({ name: '', email: '', phone: '' });
       setErrors({});
       setIsSuccess(false);
+      setShowWelcomeBack(false);
+      setIsExistingUser(false);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -180,7 +205,20 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
 
         {/* Content */}
         <div className="p-8">
-          {!isSuccess ? (
+          {showWelcomeBack ? (
+            /* Welcome Back Message */
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                <FaCheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-deepCharcoal mb-2">
+                पुन्हा भेट दिल्याबद्दल धन्यवाद!
+              </h3>
+              <p className="text-slateBody">
+                {formData.name ? `नमस्कार ${formData.name}!` : 'नमस्कार!'} आपण आधीच सबस्क्राईब केले आहे.
+              </p>
+            </div>
+          ) : !isSuccess ? (
             <>
               {/* Header */}
               <div className="text-center mb-6">

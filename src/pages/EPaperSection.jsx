@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { FaArrowLeft, FaDownload } from 'react-icons/fa';
 import { getEpaper } from '../utils/api';
 import ShareButtons from '../components/ShareButtons';
+import { isSubscribed } from '../utils/subscription';
+import SubscribePopup from '../components/SubscribePopup';
 
 // Mobile zoomable image component for sections
 const SectionZoomableImage = ({ imageUrl, alt }) => {
@@ -367,8 +369,15 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
   
   const shareImage = getAbsoluteImageUrl(page?.image || epaper?.thumbnail || '');
 
+  const [showSubscribePopup, setShowSubscribePopup] = useState(false);
+
   // Download section image with logo
   const downloadSectionWithLogo = async (sectionImageUrl, sectionTitle) => {
+    // Check subscription before allowing download
+    if (!isSubscribed()) {
+      setShowSubscribePopup(true);
+      return;
+    }
     try {
       const sectionImg = new Image();
       sectionImg.crossOrigin = 'anonymous';
@@ -621,6 +630,13 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
           </div>
         </div>
       </div>
+      
+      {/* Subscribe Popup for download */}
+      <SubscribePopup 
+        isOpen={showSubscribePopup} 
+        onClose={() => setShowSubscribePopup(false)}
+        allowClose={false}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { getEpaper } from '@/src/utils/api';
 import EPaperSection from '@/src/pages/EPaperSection';
-import SubscriptionGuard from '@/src/components/SubscriptionGuard';
+import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper';
 
 export async function generateMetadata({ params }) {
   const { id, pageNo, sectionId } = await params;
@@ -169,9 +169,9 @@ export async function generateMetadata({ params }) {
 export default async function EpaperSectionPage({ params }) {
   const { id, pageNo, sectionId } = await params;
   return (
-    <SubscriptionGuard requireSubscription={true} showBanner={true}>
+    <SubscriptionGuardWrapper requireSubscription={true} showBanner={true}>
       <EPaperSection epaperId={id} pageNo={parseInt(pageNo)} sectionId={sectionId} />
-    </SubscriptionGuard>
+    </SubscriptionGuardWrapper>
   );
 }
 

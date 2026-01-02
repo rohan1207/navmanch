@@ -10,7 +10,7 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
   const [showPopup, setShowPopup] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const searchParams = useSearchParams();
-  const isSharedLink = searchParams?.get('shared') === 'true';
+  const isSharedLink = typeof window !== 'undefined' && (searchParams?.get('shared') === 'true' || window.location.search.includes('shared=true'));
 
   useEffect(() => {
     const check = () => {
