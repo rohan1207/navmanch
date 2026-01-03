@@ -69,26 +69,45 @@ export async function generateMetadata({ params }) {
     let optimizedImage = imageUrl;
     if (imageUrl && imageUrl.includes('cloudinary.com')) {
       try {
-        const cloudNameMatch = imageUrl.match(/res\.cloudinary\.com\/([^\/]+)/);
-        const uploadIndex = imageUrl.indexOf('/image/upload/');
+        // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{version}/{public_id}
+        // We need to insert transformations BEFORE the public_id, preserving any existing path structure
+        const cloudinaryMatch = imageUrl.match(/https?:\/\/res\.cloudinary\.com\/([^\/]+)\/image\/upload\/(.*)/);
         
-        if (cloudNameMatch && uploadIndex !== -1) {
-          const cloudName = cloudNameMatch[1];
-          const afterUpload = imageUrl.substring(uploadIndex + '/image/upload/'.length);
-          const segments = afterUpload.split('/');
-          let publicId = segments[segments.length - 1];
-          let version = '';
+        if (cloudinaryMatch) {
+          const cloudName = cloudinaryMatch[1];
+          const afterUpload = cloudinaryMatch[2]; // Everything after /image/upload/
           
-          if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-            version = segments[segments.length - 2];
+          // Check if transformations already exist (contains w_, h_, c_, etc.)
+          const hasTransforms = /[whc]_|q_|f_/.test(afterUpload);
+          
+          if (!hasTransforms) {
+            // No transformations exist, add them at the beginning
+            const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
+            optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${afterUpload}`;
+          } else {
+            // Transformations exist, replace them with our vertical card dimensions
+            // Extract the public_id (last segment) and version if present
+            const parts = afterUpload.split('/');
+            let publicId = parts[parts.length - 1];
+            let version = '';
+            
+            // Check if second-to-last is a version (v123)
+            if (parts.length >= 2 && parts[parts.length - 2].match(/^v\d+$/)) {
+              version = parts[parts.length - 2];
+              publicId = parts[parts.length - 1];
+            }
+            
+            // Build new URL with our transformations
+            const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
+            if (version) {
+              optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`;
+            } else {
+              optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
+            }
           }
-          
-          const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
-          optimizedImage = version
-            ? `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`
-            : `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
         }
       } catch (e) {
+        console.error('Error optimizing Cloudinary URL:', e);
         // Use original if optimization fails
         optimizedImage = imageUrl;
       }

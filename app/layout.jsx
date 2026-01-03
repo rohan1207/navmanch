@@ -10,6 +10,13 @@ import ScrollToTop from '@/src/components/ScrollToTop';
 import Script from 'next/script';
 
 export const metadata = {
+  metadataBase: new URL('https://navmanchnews.com'), // CRITICAL: Set base URL for all metadata
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
   title: 'नव मंच - मराठी वृत्तपत्र | Nav Manch - Marathi Newspaper',
   description: 'नव मंच - ताज्या बातम्या, राष्ट्रीय, राज्य, शहर, युवा, राजकारण, आरोग्य, क्रीडा, शिक्षण आणि अधिक. ई-पेपर, लेख, ब्लॉग आणि घटनांची माहिती. Nav Manch - Latest Marathi news, e-paper, articles, blogs and events.',
   keywords: 'नव मंच, navmanch, navmanch news, navmanchnews, navmanchnews.com, मराठी वृत्तपत्र, मराठी बातम्या, ई-पेपर, navmanch epaper, navmanch newspapers, राष्ट्रीय बातम्या, राज्य बातम्या, शहर बातम्या, युवा बातम्या, राजकारण, आरोग्य, क्रीडा, शिक्षण, Nav Manch, Marathi newspaper, Marathi news, e-paper, Maharashtra news, Pune news',
