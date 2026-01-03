@@ -4,16 +4,31 @@ import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper'
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  const baseUrl = 'https://navmanchnews.com';
+  
+  // Use environment variable for base URL, fallback to production
+  // For Vercel, use VERCEL_URL if available
+  let baseUrl = 'https://navmanchnews.com';
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  } else if (process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`;
+  }
+  
+  console.log('🔍 Generating metadata for epaper:', id);
+  console.log('📍 Base URL:', baseUrl);
   
   try {
     const epaper = await getEpaper(id);
     
     if (!epaper) {
+      console.error('❌ Epaper not found for ID/slug:', id);
       return {
         title: 'E-Paper Not Found | नव मंच',
+        description: 'The requested e-paper could not be found.',
       };
     }
+    
+    console.log('✅ Epaper found:', epaper.title);
 
     // Get image - use first page or thumbnail
     let imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
@@ -116,8 +131,16 @@ export async function generateMetadata({ params }) {
       day: 'numeric'
     }) : '';
 
-    const epaperUrl = `${baseUrl}/epaper/${id}`;
+    // Use epaper ID or slug for URL
+    const epaperIdentifier = epaper.id || epaper._id || epaper.slug || id;
+    const epaperUrl = `${baseUrl}/epaper/${epaperIdentifier}`;
     const description = `${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र | navmanchnews.com`;
+
+    console.log('📝 Generated metadata:', {
+      title: epaperTitle,
+      image: optimizedImage,
+      url: epaperUrl,
+    });
 
     return {
       metadataBase: new URL(baseUrl),
@@ -162,9 +185,17 @@ export async function generateMetadata({ params }) {
       },
     };
   } catch (error) {
-    console.error('Error generating epaper metadata:', error);
+    console.error('❌ Error generating epaper metadata:', error);
+    console.error('Error stack:', error.stack);
+    // Return minimal metadata instead of falling back to root layout
     return {
       title: 'E-Paper | नव मंच',
+      description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        title: 'E-Paper | नव मंच',
+        description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+      },
     };
   }
 }

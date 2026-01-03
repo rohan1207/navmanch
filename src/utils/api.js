@@ -715,25 +715,48 @@ export const getEpaper = async (id) => {
     return null;
   }
   
+  // Decode URL-encoded slug if needed
+  let decodedId = id;
   try {
-    console.log('Fetching epaper by ID:', id, 'from:', `${API_BASE}/epapers/${id}`);
-    // Try by ID first
-    let data = await apiFetch(`/epapers/${id}`, {
+    decodedId = decodeURIComponent(id);
+  } catch (e) {
+    // If decoding fails, use original
+    decodedId = id;
+  }
+  
+  try {
+    // First try by ID (numeric or MongoDB ObjectId)
+    console.log('🔍 Fetching epaper by ID:', decodedId, 'from:', `${API_BASE}/epapers/${decodedId}`);
+    let data = await apiFetch(`/epapers/${decodedId}`, {
       timeout: 15000,
       useCache: true,
       cacheTTL: 5 * 60 * 1000,
       critical: true
     });
     
-    if (data) {
-      console.log('✅ Successfully loaded epaper by ID:', id);
+    if (data && (data.id || data._id || data.title)) {
+      console.log('✅ Successfully loaded epaper by ID:', decodedId);
       return data;
     }
     
-    // Try by slug if ID didn't work (if it's not a number and not a valid ObjectId format)
-    const isObjectIdFormat = /^[0-9a-fA-F]{24}$/.test(id);
-    if (!isObjectIdFormat && isNaN(id)) {
-      console.log('Trying to fetch epaper by slug:', id, 'from:', `${API_BASE}/epapers/slug/${id}`);
+    // If not found by ID, try by slug (URL-encoded)
+    const encodedSlug = encodeURIComponent(decodedId);
+    console.log('🔍 Trying to fetch epaper by slug:', decodedId, 'from:', `${API_BASE}/epapers/slug/${encodedSlug}`);
+    data = await apiFetch(`/epapers/slug/${encodedSlug}`, {
+      timeout: 15000,
+      useCache: true,
+      cacheTTL: 5 * 60 * 1000,
+      critical: true
+    });
+    
+    if (data && (data.id || data._id || data.title)) {
+      console.log('✅ Successfully loaded epaper by slug:', decodedId);
+      return data;
+    }
+    
+    // Try one more time with the original encoded ID
+    if (id !== decodedId) {
+      console.log('🔍 Trying with original encoded ID:', id);
       data = await apiFetch(`/epapers/slug/${id}`, {
         timeout: 15000,
         useCache: true,
@@ -741,16 +764,16 @@ export const getEpaper = async (id) => {
         critical: true
       });
       
-      if (data) {
-        console.log('✅ Successfully loaded epaper by slug:', id);
+      if (data && (data.id || data._id || data.title)) {
+        console.log('✅ Successfully loaded epaper by encoded slug:', id);
         return data;
       }
     }
     
-    console.warn('⚠️ Epaper not found for ID/slug:', id);
+    console.warn('⚠️ Epaper not found for ID/slug:', decodedId, '(also tried:', id, ')');
   } catch (error) {
     console.error('❌ Error fetching epaper:', error);
-    console.error('Error details:', error.message);
+    console.error('Error details:', error.message, error.stack);
   }
   
   return null;
