@@ -4,143 +4,79 @@ import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper'
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  
-  // Use environment variable for base URL, fallback to production
-  // For Vercel, use VERCEL_URL if available
-  let baseUrl = 'https://navmanchnews.com';
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  } else if (process.env.VERCEL_URL) {
-    baseUrl = `https://${process.env.VERCEL_URL}`;
-  }
-  
-  console.log('🔍 Generating metadata for epaper:', id);
-  console.log('📍 Base URL:', baseUrl);
+  const baseUrl = 'https://navmanchnews.com';
   
   try {
     const epaper = await getEpaper(id);
     
     if (!epaper) {
-      console.error('❌ Epaper not found for ID/slug:', id);
       return {
         title: 'E-Paper Not Found | नव मंच',
         description: 'The requested e-paper could not be found.',
       };
     }
-    
-    console.log('✅ Epaper found:', epaper.title);
 
-    // Get image - use first page or thumbnail
-    let imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
+    // Get first page image
+    const imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
     
-    if (!imageUrl) {
-      // Fallback to logo
-      imageUrl = `${baseUrl}/logo1.png`;
-    }
-    
-    // Ensure absolute URL
-    if (imageUrl.startsWith('/')) {
-      imageUrl = `${baseUrl}${imageUrl}`;
-    } else if (!imageUrl.startsWith('http')) {
-      imageUrl = `${baseUrl}/${imageUrl}`;
-    }
-    
-    // Force HTTPS
-    if (imageUrl.startsWith('http://')) {
-      imageUrl = imageUrl.replace('http://', 'https://');
-    }
-    
-    // Optimize Cloudinary image for vertical share cards (1200x1600 for WhatsApp/Facebook)
+    // Optimize Cloudinary image for vertical cards (1200x1600)
     let optimizedImage = imageUrl;
-    if (imageUrl && imageUrl.includes('cloudinary.com') && imageUrl.includes('/image/upload/')) {
+    if (imageUrl && imageUrl.includes('cloudinary.com')) {
       try {
-        // Cloudinary URL format examples:
-        // https://res.cloudinary.com/{cloud_name}/image/upload/v1234567890/{public_id}
-        // https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{public_id}
-        // https://res.cloudinary.com/{cloud_name}/image/upload/{public_id}
-        
         const cloudNameMatch = imageUrl.match(/res\.cloudinary\.com\/([^\/]+)/);
-        if (!cloudNameMatch) {
-          throw new Error('Could not extract cloud name');
-        }
-        const cloudName = cloudNameMatch[1];
-        
-        // Find /image/upload/ position
         const uploadIndex = imageUrl.indexOf('/image/upload/');
-        if (uploadIndex === -1) {
-          throw new Error('Invalid Cloudinary URL format');
-        }
         
-        // Get everything after /image/upload/
-        const afterUpload = imageUrl.substring(uploadIndex + '/image/upload/'.length);
-        
-        // Split by / to find version and public_id
-        const segments = afterUpload.split('/');
-        
-        // Last segment is always the public_id (may include file extension)
-        let publicId = segments[segments.length - 1];
-        let version = '';
-        
-        // Check if second-to-last segment is a version (format: v1234567890)
-        if (segments.length >= 2) {
-          const potentialVersion = segments[segments.length - 2];
-          if (potentialVersion.match(/^v\d+$/)) {
-            version = potentialVersion;
+        if (cloudNameMatch && uploadIndex !== -1) {
+          const cloudName = cloudNameMatch[1];
+          const afterUpload = imageUrl.substring(uploadIndex + '/image/upload/'.length);
+          const segments = afterUpload.split('/');
+          let publicId = segments[segments.length - 1];
+          let version = '';
+          
+          if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
+            version = segments[segments.length - 2];
           }
+          
+          const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
+          optimizedImage = version
+            ? `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`
+            : `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
         }
-        
-        // Build optimized URL for vertical cards (1200x1600)
-        // Use c_fill to ensure proper aspect ratio for WhatsApp/Facebook
-        const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
-        
-        if (version) {
-          optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`;
-        } else {
-          optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
-        }
-        
-        console.log('✅ Optimized Cloudinary image for sharing:', optimizedImage);
       } catch (e) {
-        console.error('❌ Error optimizing Cloudinary URL:', e.message);
-        console.error('Original URL:', imageUrl);
-        // Use original URL as fallback
+        // Use original if optimization fails
         optimizedImage = imageUrl;
       }
     }
     
-    // Final HTTPS check
-    if (optimizedImage.startsWith('http://')) {
+    // Ensure HTTPS and absolute URL
+    if (optimizedImage && !optimizedImage.startsWith('http')) {
+      optimizedImage = optimizedImage.startsWith('/') 
+        ? `${baseUrl}${optimizedImage}`
+        : `${baseUrl}/${optimizedImage}`;
+    }
+    if (optimizedImage?.startsWith('http://')) {
       optimizedImage = optimizedImage.replace('http://', 'https://');
     }
-    
-    // Clean title - remove date patterns
+
+    // Clean title
     let epaperTitle = epaper.title || 'नव मंच';
-    const originalTitle = epaperTitle;
     epaperTitle = epaperTitle
       .replace(/\s*-\s*\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/gi, '')
       .replace(/\s*-\s*\d{1,2}\/\d{1,2}\/\d{4}/g, '')
       .replace(/\s*-\s*\d{4}-\d{2}-\d{2}/g, '')
-      .replace(/\s*-\s*पृष्ठ\s*\d+/gi, '')
-      .replace(/\s*-\s*Page\s*\d+/gi, '')
       .trim();
 
-    // Format date for description
+    // Format date
     const epaperDate = epaper.date ? new Date(epaper.date).toLocaleDateString('mr-IN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     }) : '';
 
-    // Use epaper ID or slug for URL
-    const epaperIdentifier = epaper.id || epaper._id || epaper.slug || id;
-    const epaperUrl = `${baseUrl}/epaper/${epaperIdentifier}`;
-    const description = `${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र | navmanchnews.com`;
-
-    console.log('📝 Generated metadata:', {
-      title: epaperTitle,
-      image: optimizedImage,
-      url: epaperUrl,
-    });
+    // Use actual ID from epaper, not the slug from URL
+    const epaperId = epaper.id || epaper._id || id;
+    const epaperUrl = `${baseUrl}/epaper/${epaperId}`;
+    const description = `${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र`;
 
     return {
       metadataBase: new URL(baseUrl),
@@ -153,11 +89,10 @@ export async function generateMetadata({ params }) {
         description: description,
         images: [
           {
-            url: optimizedImage,
+            url: optimizedImage || `${baseUrl}/logo1.png`,
             width: 1200,
             height: 1600,
             alt: epaperTitle,
-            type: 'image/jpeg',
           },
         ],
         siteName: 'नव मंच - Nav Manch',
@@ -168,34 +103,17 @@ export async function generateMetadata({ params }) {
         card: 'summary_large_image',
         title: epaperTitle,
         description: description,
-        images: [optimizedImage],
+        images: [optimizedImage || `${baseUrl}/logo1.png`],
       },
       alternates: {
         canonical: epaperUrl,
       },
-      // Additional explicit meta tags for better compatibility
-      other: {
-        'og:image': optimizedImage,
-        'og:image:url': optimizedImage,
-        'og:image:width': '1200',
-        'og:image:height': '1600',
-        'og:image:type': 'image/jpeg',
-        'og:image:secure_url': optimizedImage,
-        'twitter:image:src': optimizedImage,
-      },
     };
   } catch (error) {
-    console.error('❌ Error generating epaper metadata:', error);
-    console.error('Error stack:', error.stack);
-    // Return minimal metadata instead of falling back to root layout
+    console.error('Error generating epaper metadata:', error);
     return {
       title: 'E-Paper | नव मंच',
       description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
-      openGraph: {
-        type: 'article',
-        title: 'E-Paper | नव मंच',
-        description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
-      },
     };
   }
 }
@@ -208,4 +126,3 @@ export default async function EpaperDetailPage({ params }) {
     </SubscriptionGuardWrapper>
   );
 }
-

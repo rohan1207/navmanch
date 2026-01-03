@@ -15,8 +15,6 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    // Find the section
-    // Backend uses 'news' not 'newsItems'
     const page = epaper.pages?.find(p => p.pageNo === parseInt(pageNo));
     const section = (page?.news || page?.newsItems)?.find(
       item => String(item._id) === sectionId || String(item.id) === sectionId
@@ -28,125 +26,93 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    // Get section image - prioritize cropped image, then page image
+    // Get section image - use cropped if available, otherwise page image
     let imageUrl = section.croppedImage || section.image || page?.image || epaper.thumbnail;
     
-    if (!imageUrl) {
-      imageUrl = `${baseUrl}/logo1.png`;
-    }
-    
-    // Ensure absolute URL
-    if (imageUrl.startsWith('/')) {
-      imageUrl = `${baseUrl}${imageUrl}`;
-    } else if (!imageUrl.startsWith('http')) {
-      imageUrl = `${baseUrl}/${imageUrl}`;
-    }
-    
-    // Force HTTPS
-    if (imageUrl.startsWith('http://')) {
-      imageUrl = imageUrl.replace('http://', 'https://');
-    }
-    
-    // If we have coordinates and page image, generate cropped Cloudinary URL
-    if (page?.image && !section.croppedImage && !section.image &&
-        section.x !== undefined && section.y !== undefined && 
-        section.width !== undefined && section.height !== undefined && 
+    // If we have coordinates, generate cropped Cloudinary URL
+    if (page?.image && section.x !== undefined && section.y !== undefined && 
+        section.width !== undefined && section.height !== undefined &&
         page.image.includes('cloudinary.com')) {
       try {
         const cloudNameMatch = page.image.match(/res\.cloudinary\.com\/([^\/]+)/);
-        if (cloudNameMatch) {
+        const uploadIndex = page.image.indexOf('/image/upload/');
+        
+        if (cloudNameMatch && uploadIndex !== -1) {
           const cloudName = cloudNameMatch[1];
-          const uploadIndex = page.image.indexOf('/image/upload/');
-          if (uploadIndex !== -1) {
-            const afterUpload = page.image.substring(uploadIndex + '/image/upload/'.length);
-            const segments = afterUpload.split('/');
-            let publicId = segments[segments.length - 1];
-            let version = '';
-            
-            if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-              version = segments[segments.length - 2];
-            }
-            
-            // Create cropped URL
-            const cropTransforms = [
-              `c_crop`,
-              `w_${Math.round(section.width)}`,
-              `h_${Math.round(section.height)}`,
-              `x_${Math.round(section.x)}`,
-              `y_${Math.round(section.y)}`,
-              `q_auto:best`,
-              `f_auto`
-            ].join(',');
-            
-            if (version) {
-              imageUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${cropTransforms}/${version}/${publicId}`;
-            } else {
-              imageUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${cropTransforms}/${publicId}`;
-            }
+          const afterUpload = page.image.substring(uploadIndex + '/image/upload/'.length);
+          const segments = afterUpload.split('/');
+          let publicId = segments[segments.length - 1];
+          let version = '';
+          
+          if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
+            version = segments[segments.length - 2];
           }
+          
+          const cropTransforms = [
+            `c_crop`,
+            `w_${Math.round(section.width)}`,
+            `h_${Math.round(section.height)}`,
+            `x_${Math.round(section.x)}`,
+            `y_${Math.round(section.y)}`,
+            `q_auto:best`,
+            `f_auto`
+          ].join(',');
+          
+          imageUrl = version
+            ? `https://res.cloudinary.com/${cloudName}/image/upload/${cropTransforms}/${version}/${publicId}`
+            : `https://res.cloudinary.com/${cloudName}/image/upload/${cropTransforms}/${publicId}`;
         }
       } catch (e) {
-        console.warn('Error creating cropped URL:', e);
+        // Use page image if crop fails
+        imageUrl = page.image;
       }
     }
     
-    // Optimize image for share cards (1200x1200 for square/vertical cards)
+    // Optimize for sharing (1200x1200 for square cards)
     let optimizedImage = imageUrl;
-    if (imageUrl && imageUrl.includes('cloudinary.com') && imageUrl.includes('/image/upload/')) {
+    if (imageUrl && imageUrl.includes('cloudinary.com')) {
       try {
         const cloudNameMatch = imageUrl.match(/res\.cloudinary\.com\/([^\/]+)/);
-        if (!cloudNameMatch) {
-          throw new Error('Could not extract cloud name');
-        }
-        const cloudName = cloudNameMatch[1];
-        
         const uploadIndex = imageUrl.indexOf('/image/upload/');
-        if (uploadIndex === -1) {
-          throw new Error('Invalid Cloudinary URL format');
+        
+        if (cloudNameMatch && uploadIndex !== -1) {
+          const cloudName = cloudNameMatch[1];
+          const afterUpload = imageUrl.substring(uploadIndex + '/image/upload/'.length);
+          const segments = afterUpload.split('/');
+          let publicId = segments[segments.length - 1];
+          let version = '';
+          
+          if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
+            version = segments[segments.length - 2];
+          }
+          
+          const transforms = 'w_1200,h_1200,c_fill,q_auto:best,f_auto';
+          optimizedImage = version
+            ? `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`
+            : `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
         }
-        
-        const afterUpload = imageUrl.substring(uploadIndex + '/image/upload/'.length);
-        const segments = afterUpload.split('/');
-        
-        let publicId = segments[segments.length - 1];
-        let version = '';
-        
-        if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-          version = segments[segments.length - 2];
-        }
-        
-        // For sections, use square format (1200x1200) for better preview
-        // If already has crop, add resize; otherwise use fill
-        const transforms = imageUrl.includes('c_crop') 
-          ? 'w_1200,h_1200,c_fill,q_auto:best,f_auto' // Resize after crop
-          : 'w_1200,h_1200,c_fill,q_auto:best,f_auto'; // Use fill for better preview
-        
-        if (version) {
-          optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`;
-        } else {
-          optimizedImage = `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
-        }
-        
-        console.log('✅ Optimized section image for sharing:', optimizedImage);
       } catch (e) {
-        console.error('❌ Error optimizing Cloudinary URL:', e.message);
         optimizedImage = imageUrl;
       }
     }
     
-    // Final HTTPS check
-    if (optimizedImage.startsWith('http://')) {
+    // Ensure HTTPS and absolute URL
+    if (optimizedImage && !optimizedImage.startsWith('http')) {
+      optimizedImage = optimizedImage.startsWith('/') 
+        ? `${baseUrl}${optimizedImage}`
+        : `${baseUrl}/${optimizedImage}`;
+    }
+    if (optimizedImage?.startsWith('http://')) {
       optimizedImage = optimizedImage.replace('http://', 'https://');
     }
-    
+
     // Clean epaper title
     let epaperTitle = epaper.title || 'नव मंच';
-    const cleanEpaperTitle = epaperTitle
+    epaperTitle = epaperTitle
       .replace(/\s*-\s*\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/gi, '')
       .replace(/\s*-\s*\d{1,2}\/\d{1,2}\/\d{4}/g, '')
       .trim();
 
-    // Format date
     const epaperDate = epaper.date ? new Date(epaper.date).toLocaleDateString('mr-IN', {
       year: 'numeric',
       month: 'long',
@@ -154,8 +120,8 @@ export async function generateMetadata({ params }) {
     }) : '';
 
     const sectionTitle = section.title || 'बातमी विभाग';
-    const title = `${sectionTitle} - ${cleanEpaperTitle}`;
-    const description = `${sectionTitle} | ${cleanEpaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र | navmanchnews.com`;
+    const title = `${sectionTitle} - ${epaperTitle}`;
+    const description = `${sectionTitle} | ${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र`;
     const sectionUrl = `${baseUrl}/epaper/${id}/page/${pageNo}/section/${sectionId}`;
 
     return {
@@ -169,11 +135,10 @@ export async function generateMetadata({ params }) {
         description: description,
         images: [
           {
-            url: optimizedImage,
+            url: optimizedImage || `${baseUrl}/logo1.png`,
             width: 1200,
             height: 1200,
             alt: sectionTitle,
-            type: 'image/jpeg',
           },
         ],
         siteName: 'नव मंच - Nav Manch',
@@ -184,20 +149,10 @@ export async function generateMetadata({ params }) {
         card: 'summary_large_image',
         title: title,
         description: description,
-        images: [optimizedImage],
+        images: [optimizedImage || `${baseUrl}/logo1.png`],
       },
       alternates: {
         canonical: sectionUrl,
-      },
-      // Additional explicit meta tags for better compatibility
-      other: {
-        'og:image': optimizedImage,
-        'og:image:url': optimizedImage,
-        'og:image:width': '1200',
-        'og:image:height': '1200',
-        'og:image:type': 'image/jpeg',
-        'og:image:secure_url': optimizedImage,
-        'twitter:image:src': optimizedImage,
       },
     };
   } catch (error) {
@@ -216,4 +171,3 @@ export default async function EpaperSectionPage({ params }) {
     </SubscriptionGuardWrapper>
   );
 }
-
