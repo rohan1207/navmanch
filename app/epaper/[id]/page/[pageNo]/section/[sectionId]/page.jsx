@@ -5,26 +5,74 @@ import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper'
 export async function generateMetadata({ params }) {
   const { id, pageNo, sectionId } = await params;
   const baseUrl = 'https://navmanchnews.com';
+  const sectionUrl = `${baseUrl}/epaper/${id}/page/${pageNo}/section/${sectionId}`;
   
+  // CRITICAL: Always return complete metadata, even on error
+  let epaper = null;
   try {
-    const epaper = await getEpaper(id);
-    
-    if (!epaper) {
-      return {
-        title: 'Section Not Found | नव मंच',
-      };
-    }
+    epaper = await getEpaper(id);
+  } catch (error) {
+    console.error('❌ CRITICAL: Failed to fetch epaper:', error);
+    return {
+      metadataBase: new URL(baseUrl),
+      title: `Section | नव मंच`,
+      description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        url: sectionUrl, // CRITICAL: Correct URL
+        title: `Section | नव मंच`,
+        description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
+        images: [`${baseUrl}/logo1.png`],
+        siteName: 'नव मंच - Nav Manch',
+      },
+      alternates: {
+        canonical: sectionUrl, // CRITICAL: Correct URL
+      },
+    };
+  }
+  
+  if (!epaper) {
+    return {
+      metadataBase: new URL(baseUrl),
+      title: `Section | नव मंच`,
+      description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        url: sectionUrl,
+        title: `Section | नव मंच`,
+        description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
+        images: [`${baseUrl}/logo1.png`],
+        siteName: 'नव मंच - Nav Manch',
+      },
+      alternates: {
+        canonical: sectionUrl,
+      },
+    };
+  }
 
-    const page = epaper.pages?.find(p => p.pageNo === parseInt(pageNo));
-    const section = (page?.news || page?.newsItems)?.find(
-      item => String(item._id) === sectionId || String(item.id) === sectionId
-    );
+  const page = epaper.pages?.find(p => p.pageNo === parseInt(pageNo));
+  const section = (page?.news || page?.newsItems)?.find(
+    item => String(item._id) === sectionId || String(item.id) === sectionId
+  );
 
-    if (!section) {
-      return {
-        title: 'Section Not Found | नव मंच',
-      };
-    }
+  if (!section || !page) {
+    return {
+      metadataBase: new URL(baseUrl),
+      title: `Section | नव मंच`,
+      description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        url: sectionUrl,
+        title: `Section | नव मंच`,
+        description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
+        images: [`${baseUrl}/logo1.png`],
+        siteName: 'नव मंच - Nav Manch',
+      },
+      alternates: {
+        canonical: sectionUrl,
+      },
+    };
+  }
 
     // Get section image - use cropped if available, otherwise page image
     let imageUrl = section.croppedImage || section.image || page?.image || epaper.thumbnail;
@@ -68,7 +116,7 @@ export async function generateMetadata({ params }) {
       }
     }
     
-    // Optimize for sharing (1200x1200 for square cards)
+    // Optimize for sharing (1200x1600 for vertical cards like reference)
     let optimizedImage = imageUrl;
     if (imageUrl && imageUrl.includes('cloudinary.com')) {
       try {
@@ -86,7 +134,8 @@ export async function generateMetadata({ params }) {
             version = segments[segments.length - 2];
           }
           
-          const transforms = 'w_1200,h_1200,c_fill,q_auto:best,f_auto';
+          // For sections, use vertical format like reference (1200x1600)
+          const transforms = 'w_1200,h_1600,c_fill,q_auto:best,f_auto';
           optimizedImage = version
             ? `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${version}/${publicId}`
             : `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`;
@@ -96,13 +145,13 @@ export async function generateMetadata({ params }) {
       }
     }
     
-    // Ensure HTTPS and absolute URL
-    if (optimizedImage && !optimizedImage.startsWith('http')) {
-      optimizedImage = optimizedImage.startsWith('/') 
+    // CRITICAL: Ensure HTTPS and absolute URL
+    if (!optimizedImage || !optimizedImage.startsWith('http')) {
+      optimizedImage = optimizedImage?.startsWith('/') 
         ? `${baseUrl}${optimizedImage}`
-        : `${baseUrl}/${optimizedImage}`;
+        : `${baseUrl}/logo1.png`;
     }
-    if (optimizedImage?.startsWith('http://')) {
+    if (optimizedImage.startsWith('http://')) {
       optimizedImage = optimizedImage.replace('http://', 'https://');
     }
 
@@ -122,7 +171,6 @@ export async function generateMetadata({ params }) {
     const sectionTitle = section.title || 'बातमी विभाग';
     const title = `${sectionTitle} - ${epaperTitle}`;
     const description = `${sectionTitle} | ${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र`;
-    const sectionUrl = `${baseUrl}/epaper/${id}/page/${pageNo}/section/${sectionId}`;
 
     return {
       metadataBase: new URL(baseUrl),
@@ -130,14 +178,14 @@ export async function generateMetadata({ params }) {
       description: description,
       openGraph: {
         type: 'article',
-        url: sectionUrl,
+        url: sectionUrl, // CRITICAL: Must be section URL
         title: title,
         description: description,
         images: [
           {
-            url: optimizedImage || `${baseUrl}/logo1.png`,
+            url: optimizedImage,
             width: 1200,
-            height: 1200,
+            height: 1600, // Changed to 1600 for vertical cards like reference
             alt: sectionTitle,
           },
         ],
@@ -149,16 +197,11 @@ export async function generateMetadata({ params }) {
         card: 'summary_large_image',
         title: title,
         description: description,
-        images: [optimizedImage || `${baseUrl}/logo1.png`],
+        images: [optimizedImage],
       },
       alternates: {
-        canonical: sectionUrl,
+        canonical: sectionUrl, // CRITICAL: Must be section URL
       },
-    };
-  } catch (error) {
-    console.error('Error generating section metadata:', error);
-    return {
-      title: 'Section | नव मंच',
     };
   }
 }

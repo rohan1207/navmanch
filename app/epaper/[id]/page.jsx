@@ -5,16 +5,51 @@ import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper'
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const baseUrl = 'https://navmanchnews.com';
+  const epaperUrl = `${baseUrl}/epaper/${id}`;
   
+  // CRITICAL: Always return complete metadata, even on error
+  let epaper = null;
   try {
-    const epaper = await getEpaper(id);
-    
-    if (!epaper) {
-      return {
-        title: 'E-Paper Not Found | नव मंच',
-        description: 'The requested e-paper could not be found.',
-      };
-    }
+    epaper = await getEpaper(id);
+  } catch (error) {
+    console.error('❌ CRITICAL: Failed to fetch epaper:', error);
+    // Return complete metadata with correct URL (prevents root layout fallback)
+    return {
+      metadataBase: new URL(baseUrl),
+      title: `E-Paper ${id} | नव मंच`,
+      description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        url: epaperUrl, // CRITICAL: Correct URL
+        title: `E-Paper ${id} | नव मंच`,
+        description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+        images: [`${baseUrl}/logo1.png`],
+        siteName: 'नव मंच - Nav Manch',
+      },
+      alternates: {
+        canonical: epaperUrl, // CRITICAL: Correct URL
+      },
+    };
+  }
+  
+  if (!epaper) {
+    return {
+      metadataBase: new URL(baseUrl),
+      title: `E-Paper ${id} | नव मंच`,
+      description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        url: epaperUrl,
+        title: `E-Paper ${id} | नव मंच`,
+        description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+        images: [`${baseUrl}/logo1.png`],
+        siteName: 'नव मंच - Nav Manch',
+      },
+      alternates: {
+        canonical: epaperUrl,
+      },
+    };
+  }
 
     // Get first page image
     const imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
@@ -49,12 +84,12 @@ export async function generateMetadata({ params }) {
     }
     
     // Ensure HTTPS and absolute URL
-    if (optimizedImage && !optimizedImage.startsWith('http')) {
-      optimizedImage = optimizedImage.startsWith('/') 
+    if (!optimizedImage || !optimizedImage.startsWith('http')) {
+      optimizedImage = optimizedImage?.startsWith('/') 
         ? `${baseUrl}${optimizedImage}`
-        : `${baseUrl}/${optimizedImage}`;
+        : `${baseUrl}/logo1.png`;
     }
-    if (optimizedImage?.startsWith('http://')) {
+    if (optimizedImage.startsWith('http://')) {
       optimizedImage = optimizedImage.replace('http://', 'https://');
     }
 
@@ -75,7 +110,7 @@ export async function generateMetadata({ params }) {
 
     // Use actual ID from epaper, not the slug from URL
     const epaperId = epaper.id || epaper._id || id;
-    const epaperUrl = `${baseUrl}/epaper/${epaperId}`;
+    const finalEpaperUrl = `${baseUrl}/epaper/${epaperId}`;
     const description = `${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र`;
 
     return {
@@ -84,12 +119,12 @@ export async function generateMetadata({ params }) {
       description: description,
       openGraph: {
         type: 'article',
-        url: epaperUrl,
+        url: finalEpaperUrl, // CRITICAL: Must be epaper URL
         title: epaperTitle,
         description: description,
         images: [
           {
-            url: optimizedImage || `${baseUrl}/logo1.png`,
+            url: optimizedImage,
             width: 1200,
             height: 1600,
             alt: epaperTitle,
@@ -103,17 +138,11 @@ export async function generateMetadata({ params }) {
         card: 'summary_large_image',
         title: epaperTitle,
         description: description,
-        images: [optimizedImage || `${baseUrl}/logo1.png`],
+        images: [optimizedImage],
       },
       alternates: {
-        canonical: epaperUrl,
+        canonical: finalEpaperUrl, // CRITICAL: Must be epaper URL
       },
-    };
-  } catch (error) {
-    console.error('Error generating epaper metadata:', error);
-    return {
-      title: 'E-Paper | नव मंच',
-      description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
     };
   }
 }
