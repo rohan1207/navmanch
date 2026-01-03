@@ -207,6 +207,9 @@ export async function generateMetadata({ params }) {
       alternates: {
         canonical: sectionUrl, // CRITICAL: Must be section URL
       },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // Add Facebook App ID if available
+      },
     };
 }
 

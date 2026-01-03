@@ -3,9 +3,12 @@ import EPaperViewer from '@/src/pages/EPaperViewer';
 import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper';
 
 export async function generateMetadata({ params }) {
+  console.log('🔍 generateMetadata called for epaper page');
   const { id } = await params;
   const baseUrl = 'https://navmanchnews.com';
   const epaperUrl = `${baseUrl}/epaper/${id}`;
+  
+  console.log('📄 Generating metadata for epaper:', id);
   
   // CRITICAL: Always return complete metadata, even on error
   // Add timeout to prevent hanging on slow API calls
@@ -16,10 +19,11 @@ export async function generateMetadata({ params }) {
       setTimeout(() => reject(new Error('API timeout')), 5000)
     );
     epaper = await Promise.race([getEpaper(id), timeoutPromise]);
+    console.log('✅ Epaper fetched:', epaper ? 'success' : 'null');
   } catch (error) {
     console.error('❌ CRITICAL: Failed to fetch epaper:', error);
     // Return complete metadata with correct URL (prevents root layout fallback)
-    return {
+    const fallbackMetadata = {
       metadataBase: new URL(baseUrl),
       title: `E-Paper ${id} | नव मंच`,
       description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
@@ -35,6 +39,8 @@ export async function generateMetadata({ params }) {
         canonical: epaperUrl, // CRITICAL: Correct URL
       },
     };
+    console.log('📤 Returning fallback metadata:', fallbackMetadata);
+    return fallbackMetadata;
   }
   
   if (!epaper) {
@@ -118,7 +124,7 @@ export async function generateMetadata({ params }) {
     const finalEpaperUrl = `${baseUrl}/epaper/${epaperId}`;
     const description = `${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र`;
 
-    return {
+    const metadata = {
       metadataBase: new URL(baseUrl),
       title: `${epaperTitle} | नव मंच`,
       description: description,
@@ -148,7 +154,13 @@ export async function generateMetadata({ params }) {
       alternates: {
         canonical: finalEpaperUrl, // CRITICAL: Must be epaper URL
       },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // Add Facebook App ID if available
+      },
     };
+    
+    console.log('📤 Returning metadata:', JSON.stringify(metadata, null, 2));
+    return metadata;
 }
 
 export default async function EpaperDetailPage({ params }) {
