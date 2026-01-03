@@ -8,9 +8,14 @@ export async function generateMetadata({ params }) {
   const epaperUrl = `${baseUrl}/epaper/${id}`;
   
   // CRITICAL: Always return complete metadata, even on error
+  // Add timeout to prevent hanging on slow API calls
   let epaper = null;
   try {
-    epaper = await getEpaper(id);
+    // Use Promise.race to timeout after 5 seconds
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('API timeout')), 5000)
+    );
+    epaper = await Promise.race([getEpaper(id), timeoutPromise]);
   } catch (error) {
     console.error('❌ CRITICAL: Failed to fetch epaper:', error);
     // Return complete metadata with correct URL (prevents root layout fallback)
@@ -144,7 +149,6 @@ export async function generateMetadata({ params }) {
         canonical: finalEpaperUrl, // CRITICAL: Must be epaper URL
       },
     };
-  }
 }
 
 export default async function EpaperDetailPage({ params }) {

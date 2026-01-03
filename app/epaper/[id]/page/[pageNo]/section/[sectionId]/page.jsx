@@ -8,9 +8,14 @@ export async function generateMetadata({ params }) {
   const sectionUrl = `${baseUrl}/epaper/${id}/page/${pageNo}/section/${sectionId}`;
   
   // CRITICAL: Always return complete metadata, even on error
+  // Add timeout to prevent hanging on slow API calls
   let epaper = null;
   try {
-    epaper = await getEpaper(id);
+    // Use Promise.race to timeout after 5 seconds
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('API timeout')), 5000)
+    );
+    epaper = await Promise.race([getEpaper(id), timeoutPromise]);
   } catch (error) {
     console.error('❌ CRITICAL: Failed to fetch epaper:', error);
     return {
@@ -203,7 +208,6 @@ export async function generateMetadata({ params }) {
         canonical: sectionUrl, // CRITICAL: Must be section URL
       },
     };
-  }
 }
 
 export default async function EpaperSectionPage({ params }) {
