@@ -53,21 +53,22 @@ const EPaper2 = () => {
       "@type": "ItemList",
       "numberOfItems": epapers.length,
       "itemListElement": epapers.slice(0, 10).map((epaper, index) => {
+        // Use ID only (not slug) for cleaner URLs
         const epaperId = epaper.id !== undefined ? String(epaper.id) : (epaper._id ? String(epaper._id) : null);
-        const epaperIdentifier = epaper.slug || epaperId;
+        if (!epaperId) return null;
         return {
           "@type": "ListItem",
           "position": index + 1,
           "item": {
             "@type": "Newspaper",
-            "@id": `https://navmanchnews.com/epaper/${epaperIdentifier}`,
+            "@id": `https://navmanchnews.com/epaper/${epaperId}`,
             "name": epaper.title,
             "datePublished": epaper.date ? new Date(epaper.date).toISOString() : undefined,
-            "url": `https://navmanchnews.com/epaper/${epaperIdentifier}`,
+            "url": `https://navmanchnews.com/epaper/${epaperId}`,
             "frequency": "Weekly"
           }
         };
-      })
+      }).filter(Boolean)
     },
     "inLanguage": "mr",
     "isAccessibleForFree": true
@@ -116,33 +117,43 @@ const EPaper2 = () => {
                     <p className="text-metaGray text-lg">कोणतेही ई-पेपर उपलब्ध नाही</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {epapers.map((epaper) => {
                       const thumbnail = getFirstPageThumbnail(epaper);
+                      // Use ID only (not slug) for cleaner URLs and better share cards
                       const epaperId = epaper.id !== undefined ? String(epaper.id) : (epaper._id ? String(epaper._id) : null);
                       if (!epaperId) {
                         console.warn('Epaper missing ID:', epaper);
                         return null;
                       }
-                      const epaperIdentifier = epaper.slug || epaperId;
+                      // Always use ID, never slug (cleaner URLs, better for share cards)
                       return (
                         <Link
                           key={epaperId}
-                          href={`/epaper/${epaperIdentifier}`}
+                          href={`/epaper/${epaperId}`}
                           className="group bg-cleanWhite border border-subtleGray rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block"
                         >
-                          <div className="relative aspect-[3/4] overflow-hidden bg-subtleGray/30">
+                          {/* Square card with image - Mobile: 2 columns, Desktop: 3 columns */}
+                          <div className="relative aspect-square md:aspect-[3/4] overflow-hidden bg-subtleGray/30">
                             {thumbnail ? (
                               <img
                                 src={thumbnail}
                                 alt={epaper.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                onError={(e) => {
+                                  e.target.src = '/logo1.png';
+                                }}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <p className="text-metaGray text-sm">छवी उपलब्ध नाही</p>
                               </div>
                             )}
+                            {/* Date overlay - Mobile */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 md:hidden">
+                              <p className="text-white text-xs font-medium">{epaper.date}</p>
+                            </div>
+                            {/* Desktop hover overlay */}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 hidden md:flex items-center justify-center">
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                 <div className="bg-newsRed text-cleanWhite px-6 py-3 rounded-full font-semibold flex items-center gap-2 shadow-lg">
@@ -153,14 +164,17 @@ const EPaper2 = () => {
                             </div>
                           </div>
                           
-                          <div className="p-4">
-                            <h3 className="text-lg font-bold text-deepCharcoal mb-2 line-clamp-2 group-hover:text-newsRed transition-colors">
+                          {/* Card Content */}
+                          <div className="p-3 md:p-4">
+                            <h3 className="text-sm md:text-lg font-bold text-deepCharcoal mb-1 md:mb-2 line-clamp-2 group-hover:text-newsRed transition-colors">
                               {epaper.title}
                             </h3>
-                            <p className="text-sm text-metaGray mb-3">{epaper.date}</p>
+                            {/* Desktop: Show date */}
+                            <p className="hidden md:block text-sm text-metaGray mb-3">{epaper.date}</p>
                             
-                            <div className="md:hidden mt-3">
-                              <div className="bg-newsRed text-cleanWhite px-4 py-2 rounded-lg font-semibold text-center text-sm">
+                            {/* Mobile: Read button */}
+                            <div className="md:hidden mt-2">
+                              <div className="bg-newsRed text-cleanWhite px-3 py-1.5 rounded-lg font-semibold text-center text-xs">
                                 वाचा
                               </div>
                             </div>

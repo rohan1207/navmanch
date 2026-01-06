@@ -9,6 +9,40 @@ import ShareButtons from '../components/ShareButtons';
 import { isSubscribed } from '../utils/subscription';
 import SubscribePopup from '../components/SubscribePopup';
 
+// Hide header components on mobile for epaper section pages
+const hideHeaderOnMobile = () => {
+  if (typeof window === 'undefined') return;
+  const isMobile = window.innerWidth < 768; // md breakpoint
+  if (isMobile) {
+    const header = document.querySelector('header');
+    const breakingNews = document.querySelector('[class*="BreakingNews"]');
+    const navigation = document.querySelector('nav');
+    const contactRibbon = document.querySelector('[class*="ContactRibbon"]');
+    const footer = document.querySelector('footer');
+    
+    if (header) header.style.display = 'none';
+    if (breakingNews) breakingNews.style.display = 'none';
+    if (navigation) navigation.style.display = 'none';
+    if (contactRibbon) contactRibbon.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+  }
+};
+
+const showHeaderOnMobile = () => {
+  if (typeof window === 'undefined') return;
+  const header = document.querySelector('header');
+  const breakingNews = document.querySelector('[class*="BreakingNews"]');
+  const navigation = document.querySelector('nav');
+  const contactRibbon = document.querySelector('[class*="ContactRibbon"]');
+  const footer = document.querySelector('footer');
+  
+  if (header) header.style.display = '';
+  if (breakingNews) breakingNews.style.display = '';
+  if (navigation) navigation.style.display = '';
+  if (contactRibbon) contactRibbon.style.display = '';
+  if (footer) footer.style.display = '';
+};
+
 // Mobile zoomable image component for sections
 const SectionZoomableImage = ({ imageUrl, alt }) => {
   const [scale, setScale] = useState(1);
@@ -168,6 +202,9 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Hide header components on mobile
+    hideHeaderOnMobile();
+    
     if (typeof document !== 'undefined') {
       const isMobile = window.innerWidth < 768;
       if (isMobile) {
@@ -175,8 +212,13 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
       }
       return () => {
         document.body.style.overflow = '';
+        showHeaderOnMobile();
       };
     }
+    
+    return () => {
+      showHeaderOnMobile();
+    };
   }, []);
 
   useEffect(() => {
@@ -188,7 +230,7 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
         if (!found) {
           console.log('❌ Epaper not found for id:', epaperId);
           setLoading(false);
-          setTimeout(() => router.push('/epaper'), 500);
+          setTimeout(() => router.push('/epaper2'), 500);
           return;
         }
         
@@ -247,14 +289,14 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
       } catch (error) {
         console.error('Error loading section:', error);
         setLoading(false);
-        setTimeout(() => router.push('/epaper'), 500);
+        setTimeout(() => router.push('/epaper2'), 500);
       }
     };
     
     if (epaperId && pageNo && sectionId) {
       loadData();
     } else {
-      router.push('/epaper');
+      router.push('/epaper2');
     }
   }, [epaperId, pageNo, sectionId, router]);
 
@@ -501,16 +543,17 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
         </div>
       </div>
 
-      {/* Mobile Header */}
-      <div className="md:hidden bg-cleanWhite border-b border-subtleGray py-2 fixed top-0 left-0 right-0 z-50 shadow-sm">
-        <div className="container mx-auto px-3">
+      {/* Mobile Header - Full screen with only back and share */}
+      <div className="md:hidden bg-cleanWhite/95 backdrop-blur-sm border-b border-subtleGray py-2.5 fixed top-0 left-0 right-0 z-[100] shadow-md">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <Link
               href={`/epaper/${epaperId}`}
               className="flex items-center gap-2 text-deepCharcoal hover:text-newsRed transition-colors font-semibold text-sm"
+              onClick={() => showHeaderOnMobile()}
             >
               <FaArrowLeft className="w-4 h-4" />
-              <span>मागे</span>
+              <span className="hidden sm:inline">मागे</span>
             </Link>
             <ShareButtons
               title={shareTitle}
@@ -600,7 +643,7 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
           </div>
 
           {/* Mobile: Full screen zoomable view */}
-          <div className="md:hidden pt-12">
+          <div className="md:hidden pt-14">
             <div className="w-full bg-cleanWhite flex flex-col items-center">
               <div className="flex items-center justify-center pt-1 pb-0 w-full px-2">
                 <img

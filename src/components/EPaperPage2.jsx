@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-const EPaperPage2 = ({ page, onSectionClick, epaperId, epaperSlug, isMobile = false, totalPages = null }) => {
+const EPaperPage2 = ({ page, onSectionClick, epaperId, isMobile = false, totalPages = null }) => {
   const router = useRouter();
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
@@ -201,8 +201,8 @@ const EPaperPage2 = ({ page, onSectionClick, epaperId, epaperSlug, isMobile = fa
                     return;
                   }
                   
-                  const epIdentifier = epaperSlug || String(epaperId);
-                  router.push(`/epaper/${epIdentifier}/page/${page.pageNo}/section/${sectionId}`);
+                  // Always use ID (not slug) for cleaner URLs
+                  router.push(`/epaper/${epaperId}/page/${page.pageNo}/section/${sectionId}`);
                 } else if (onSectionClick) {
                   onSectionClick(newsItem);
                 }
@@ -286,8 +286,8 @@ const EPaperPage2 = ({ page, onSectionClick, epaperId, epaperSlug, isMobile = fa
                 return;
               }
               
-              const epIdentifier = epaperSlug || String(epaperId);
-              router.push(`/epaper/${epIdentifier}/page/${page.pageNo}/section/${sectionId}`);
+              // Always use ID (not slug) for cleaner URLs
+              router.push(`/epaper/${epaperId}/page/${page.pageNo}/section/${sectionId}`);
             } else if (onSectionClick) {
               onSectionClick(newsItem);
             }

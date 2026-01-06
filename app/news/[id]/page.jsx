@@ -14,18 +14,36 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    // Get image - prioritize featuredImage, then imageGallery, then default
+    // Get image - prioritize featuredImage, then imageGallery, then first <img> from content.
+    // Fallback to logo ONLY if absolutely nothing else is available.
     let imageUrl = '';
     
+    // 1) Explicit featured image
     if (article.featuredImage && article.featuredImage.trim() !== '') {
       imageUrl = article.featuredImage.trim();
-    } else if (article.imageGallery && article.imageGallery.length > 0) {
+    }
+    
+    // 2) First image from gallery
+    if ((!imageUrl || imageUrl === '') && article.imageGallery && article.imageGallery.length > 0) {
       const firstImage = article.imageGallery.find(img => img && img.trim() !== '');
       if (firstImage) {
         imageUrl = firstImage.trim();
       }
     }
+
+    // 3) First <img src="..."> inside HTML content (many old articles only have inline images)
+    if ((!imageUrl || imageUrl === '') && article.content) {
+      try {
+        const match = String(article.content).match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (match && match[1]) {
+          imageUrl = match[1].trim();
+        }
+      } catch (e) {
+        console.error('Error extracting image from article content for metadata:', e);
+      }
+    }
     
+    // 4) Absolute last fallback: logo (so that share cards never break completely)
     if (!imageUrl || imageUrl === '') {
       imageUrl = `${baseUrl}/logo1.png`;
     }
@@ -99,4 +117,8 @@ export default async function NewsDetailPage({ params }) {
   const { id } = await params;
   return <NewsDetail articleId={id} />;
 }
+
+
+
+
 

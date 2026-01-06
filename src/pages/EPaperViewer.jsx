@@ -8,6 +8,40 @@ import { getEpaper } from '../utils/api';
 import EPaperPage2 from '../components/EPaperPage2';
 import ShareButtons from '../components/ShareButtons';
 
+// Hide header components on mobile for epaper pages
+const hideHeaderOnMobile = () => {
+  if (typeof window === 'undefined') return;
+  const isMobile = window.innerWidth < 1024; // lg breakpoint
+  if (isMobile) {
+    const header = document.querySelector('header');
+    const breakingNews = document.querySelector('[class*="BreakingNews"]');
+    const navigation = document.querySelector('nav');
+    const contactRibbon = document.querySelector('[class*="ContactRibbon"]');
+    const footer = document.querySelector('footer');
+    
+    if (header) header.style.display = 'none';
+    if (breakingNews) breakingNews.style.display = 'none';
+    if (navigation) navigation.style.display = 'none';
+    if (contactRibbon) contactRibbon.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+  }
+};
+
+const showHeaderOnMobile = () => {
+  if (typeof window === 'undefined') return;
+  const header = document.querySelector('header');
+  const breakingNews = document.querySelector('[class*="BreakingNews"]');
+  const navigation = document.querySelector('nav');
+  const contactRibbon = document.querySelector('[class*="ContactRibbon"]');
+  const footer = document.querySelector('footer');
+  
+  if (header) header.style.display = '';
+  if (breakingNews) breakingNews.style.display = '';
+  if (navigation) navigation.style.display = '';
+  if (contactRibbon) contactRibbon.style.display = '';
+  if (footer) footer.style.display = '';
+};
+
 const EPaperViewer = ({ epaperId }) => {
   const router = useRouter();
   const [epaper, setEpaper] = useState(null);
@@ -16,6 +50,16 @@ const EPaperViewer = ({ epaperId }) => {
   const [loading, setLoading] = useState(true);
   const sidebarRef = useRef(null);
   const mainContentRef = useRef(null);
+
+  useEffect(() => {
+    // Hide header components on mobile
+    hideHeaderOnMobile();
+    
+    // Show them again when component unmounts
+    return () => {
+      showHeaderOnMobile();
+    };
+  }, []);
 
   useEffect(() => {
     const loadEpaper = async () => {
@@ -34,19 +78,19 @@ const EPaperViewer = ({ epaperId }) => {
         } else {
           console.log('❌ Epaper not found for id:', epaperId);
           setLoading(false);
-          setTimeout(() => router.push('/epaper'), 500);
+          setTimeout(() => router.push('/epaper2'), 500);
         }
       } catch (error) {
         console.error('Error loading e-paper:', error);
         setLoading(false);
-        setTimeout(() => router.push('/epaper'), 500);
+        setTimeout(() => router.push('/epaper2'), 500);
       }
     };
     
     if (epaperId) {
       loadEpaper();
     } else {
-      router.push('/epaper');
+      router.push('/epaper2');
     }
   }, [epaperId, router]);
 
@@ -141,7 +185,7 @@ const EPaperViewer = ({ epaperId }) => {
                 url={shareUrl}
               />
               <Link
-                href="/epaper"
+                href="/epaper2"
                 className="text-xs sm:text-sm text-metaGray hover:text-deepCharcoal transition-colors font-semibold whitespace-nowrap"
               >
                 मागे जा
@@ -151,16 +195,17 @@ const EPaperViewer = ({ epaperId }) => {
         </div>
       </div>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-cleanWhite border-b border-subtleGray py-2 fixed top-0 left-0 right-0 z-50 shadow-sm">
-        <div className="container mx-auto px-3">
+      {/* Mobile Header - Full screen with only back and share */}
+      <div className="lg:hidden bg-cleanWhite/95 backdrop-blur-sm border-b border-subtleGray py-2.5 fixed top-0 left-0 right-0 z-[100] shadow-md">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <Link
-              href="/epaper"
+              href="/epaper2"
               className="flex items-center gap-2 text-deepCharcoal hover:text-newsRed transition-colors font-semibold text-sm"
+              onClick={() => showHeaderOnMobile()}
             >
               <FaArrowLeft className="w-4 h-4" />
-              <span>मागे</span>
+              <span className="hidden sm:inline">मागे</span>
             </Link>
             <ShareButtons
               title={shareTitle}
@@ -227,23 +272,21 @@ const EPaperViewer = ({ epaperId }) => {
             <div className="hidden lg:block">
               {selectedPage && (
                 <div className="bg-cleanWhite rounded-lg border border-subtleGray p-4 md:p-6">
-                  <EPaperPage2
-                    page={selectedPage}
-                    epaperId={epaperId}
-                    epaperSlug={epaper?.slug}
-                  />
+                            <EPaperPage2
+                              page={selectedPage}
+                              epaperId={epaperId}
+                            />
                 </div>
               )}
             </div>
 
-            {/* Mobile: Pages stacked normally */}
-            <div className="lg:hidden pt-12 space-y-0">
+            {/* Mobile: Pages stacked normally - Full screen */}
+            <div className="lg:hidden pt-14 space-y-0">
               {epaper.pages.map((page, index) => (
                 <div key={page.pageNo} className="w-full bg-cleanWhite">
                   <EPaperPage2
                     page={page}
                     epaperId={epaperId}
-                    epaperSlug={epaper?.slug}
                     isMobile={true}
                     totalPages={epaper.pages.length}
                   />

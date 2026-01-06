@@ -4,34 +4,38 @@ import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper'
 
 export async function generateMetadata({ params }) {
   const { id, pageNo, sectionId } = await params;
-  const baseUrl = 'https://navmanchnews.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'https://navmanchnews.com';
   const sectionUrl = `${baseUrl}/epaper/${id}/page/${pageNo}/section/${sectionId}`;
   
   // CRITICAL: Always return complete metadata, even on error
-  // Add timeout to prevent hanging on slow API calls
+  // Increase timeout for Vercel (10 seconds)
   let epaper = null;
   try {
-    // Use Promise.race to timeout after 5 seconds
+    // Use Promise.race to timeout after 10 seconds (increased for Vercel)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('API timeout')), 5000)
+      setTimeout(() => reject(new Error('API timeout')), 10000)
     );
     epaper = await Promise.race([getEpaper(id), timeoutPromise]);
   } catch (error) {
-    console.error('❌ CRITICAL: Failed to fetch epaper:', error);
     return {
       metadataBase: new URL(baseUrl),
       title: `Section | नव मंच`,
       description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
       openGraph: {
         type: 'article',
-        url: sectionUrl, // CRITICAL: Correct URL
+        url: sectionUrl,
         title: `Section | नव मंच`,
         description: 'E-Paper Section | नव मंच - मराठी वृत्तपत्र',
         images: [`${baseUrl}/logo1.png`],
         siteName: 'नव मंच - Nav Manch',
       },
       alternates: {
-        canonical: sectionUrl, // CRITICAL: Correct URL
+        canonical: sectionUrl,
+      },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
       },
     };
   }
@@ -51,6 +55,9 @@ export async function generateMetadata({ params }) {
       },
       alternates: {
         canonical: sectionUrl,
+      },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
       },
     };
   }
@@ -75,6 +82,9 @@ export async function generateMetadata({ params }) {
       },
       alternates: {
         canonical: sectionUrl,
+      },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
       },
     };
   }

@@ -3,61 +3,62 @@ import EPaperViewer from '@/src/pages/EPaperViewer';
 import SubscriptionGuardWrapper from '@/src/components/SubscriptionGuardWrapper';
 
 export async function generateMetadata({ params }) {
-  console.log('🔍 generateMetadata called for epaper page');
   const { id } = await params;
-  const baseUrl = 'https://navmanchnews.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'https://navmanchnews.com';
   const epaperUrl = `${baseUrl}/epaper/${id}`;
   
-  console.log('📄 Generating metadata for epaper:', id);
-  
   // CRITICAL: Always return complete metadata, even on error
-  // Add timeout to prevent hanging on slow API calls
+  // Increase timeout for Vercel (10 seconds)
   let epaper = null;
   try {
-    // Use Promise.race to timeout after 5 seconds
+    // Use Promise.race to timeout after 10 seconds (increased for Vercel)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('API timeout')), 5000)
+      setTimeout(() => reject(new Error('API timeout')), 10000)
     );
     epaper = await Promise.race([getEpaper(id), timeoutPromise]);
-    console.log('✅ Epaper fetched:', epaper ? 'success' : 'null');
   } catch (error) {
-    console.error('❌ CRITICAL: Failed to fetch epaper:', error);
     // Return complete metadata with correct URL (prevents root layout fallback)
-    const fallbackMetadata = {
-      metadataBase: new URL(baseUrl),
-      title: `E-Paper ${id} | नव मंच`,
-      description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
-      openGraph: {
-        type: 'article',
-        url: epaperUrl, // CRITICAL: Correct URL
-        title: `E-Paper ${id} | नव मंच`,
-        description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
-        images: [`${baseUrl}/logo1.png`],
-        siteName: 'नव मंच - Nav Manch',
-      },
-      alternates: {
-        canonical: epaperUrl, // CRITICAL: Correct URL
-      },
-    };
-    console.log('📤 Returning fallback metadata:', fallbackMetadata);
-    return fallbackMetadata;
-  }
-  
-  if (!epaper) {
     return {
       metadataBase: new URL(baseUrl),
-      title: `E-Paper ${id} | नव मंच`,
+      title: `E-Paper | नव मंच`,
       description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
       openGraph: {
         type: 'article',
         url: epaperUrl,
-        title: `E-Paper ${id} | नव मंच`,
+        title: `E-Paper | नव मंच`,
         description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
         images: [`${baseUrl}/logo1.png`],
         siteName: 'नव मंच - Nav Manch',
       },
       alternates: {
         canonical: epaperUrl,
+      },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
+      },
+    };
+  }
+  
+  if (!epaper) {
+    return {
+      metadataBase: new URL(baseUrl),
+      title: `E-Paper | नव मंच`,
+      description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        type: 'article',
+        url: epaperUrl,
+        title: `E-Paper | नव मंच`,
+        description: 'E-Paper | नव मंच - मराठी वृत्तपत्र',
+        images: [`${baseUrl}/logo1.png`],
+        siteName: 'नव मंच - Nav Manch',
+      },
+      alternates: {
+        canonical: epaperUrl,
+      },
+      other: {
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
       },
     };
   }
@@ -143,13 +144,13 @@ export async function generateMetadata({ params }) {
     const finalEpaperUrl = `${baseUrl}/epaper/${epaperId}`;
     const description = `${epaperTitle}${epaperDate ? ` - ${epaperDate}` : ''} | नव मंच - मराठी वृत्तपत्र`;
 
-    const metadata = {
+    return {
       metadataBase: new URL(baseUrl),
       title: `${epaperTitle} | नव मंच`,
       description: description,
       openGraph: {
         type: 'article',
-        url: finalEpaperUrl, // CRITICAL: Must be epaper URL
+        url: finalEpaperUrl,
         title: epaperTitle,
         description: description,
         images: [
@@ -171,15 +172,12 @@ export async function generateMetadata({ params }) {
         images: [optimizedImage],
       },
       alternates: {
-        canonical: finalEpaperUrl, // CRITICAL: Must be epaper URL
+        canonical: finalEpaperUrl,
       },
       other: {
-        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '', // Add Facebook App ID if available
+        'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
       },
     };
-    
-    console.log('📤 Returning metadata:', JSON.stringify(metadata, null, 2));
-    return metadata;
 }
 
 export default async function EpaperDetailPage({ params }) {

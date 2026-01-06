@@ -4,9 +4,10 @@ import apiCache from './cache.js';
 // Use Next.js environment variable
 // For local development, use http://localhost:5001/api
 // For production, use https://navmanch-backend.onrender.com/api
-const API_BASE = (typeof window !== 'undefined' 
-  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api')
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'));
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' 
+    ? 'http://localhost:5001/api'
+    : 'https://navmanch-backend.onrender.com/api');
 
 // Simple fetch helper with caching (similar to admin panel)
 export const apiFetch = async (endpoint, options = {}) => {

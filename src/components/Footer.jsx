@@ -41,7 +41,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/epaper" className="text-slateBody hover:text-newsRed transition-colors">
+                <Link href="/epaper2" className="text-slateBody hover:text-newsRed transition-colors">
                   ई-पेपर
                 </Link>
               </li>

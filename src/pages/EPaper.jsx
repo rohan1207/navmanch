@@ -141,14 +141,16 @@ const EPaper = () => {
                   <span className="text-sm">रिफ्रेश</span>
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
                 {loading && epapers.length === 0 ? (
                   // Loading skeleton
                   Array.from({ length: 4 }).map((_, i) => (
-                    <div key={`skeleton-${i}`} className="bg-cleanWhite border border-subtleGray rounded-lg p-6 animate-pulse">
-                      <div className="h-6 bg-subtleGray rounded mb-2"></div>
-                      <div className="h-4 bg-subtleGray rounded mb-4 w-1/2"></div>
-                      <div className="h-10 bg-subtleGray rounded"></div>
+                    <div key={`skeleton-${i}`} className="bg-cleanWhite border border-subtleGray rounded-lg overflow-hidden animate-pulse">
+                      <div className="aspect-square bg-subtleGray"></div>
+                      <div className="p-3">
+                        <div className="h-4 bg-subtleGray rounded mb-2"></div>
+                        <div className="h-3 bg-subtleGray rounded w-2/3"></div>
+                      </div>
                     </div>
                   ))
                 ) : epapers.length === 0 ? (
@@ -158,25 +160,49 @@ const EPaper = () => {
                 ) : (
                   epapers.map((epaper) => {
                   const epaperId = epaper.id !== undefined ? epaper.id : (epaper._id ? String(epaper._id) : null);
+                  const thumbnail = epaper.thumbnail || epaper.pages?.[0]?.image || '/logo1.png';
                   return (
-                    <div
+                    <Link
                       key={epaper.id || epaper._id}
-                      className="bg-cleanWhite border border-subtleGray rounded-lg p-6 hover:shadow-lg transition-shadow"
+                      href={`/epaper/${epaperId}`}
+                      className="bg-cleanWhite border border-subtleGray rounded-lg overflow-hidden hover:shadow-lg transition-shadow block"
                     >
-                      <h3 className="text-xl font-bold text-deepCharcoal mb-2">{epaper.title}</h3>
-                      <p className="text-slateBody mb-4 text-sm">{epaper.date}</p>
-                      <div className="flex space-x-3">
-                        <Link
-                          href={`/epaper/${epaperId}`}
-                          className="flex-1 bg-gradient-to-r from-newsRed to-editorialBlue text-cleanWhite px-4 py-2 rounded hover:opacity-90 transition-opacity font-semibold text-sm text-center"
-                        >
-                          पेपर पहा
-                        </Link>
-                        <button className="flex items-center justify-center bg-deepCharcoal text-cleanWhite px-4 py-2 rounded hover:bg-deepCharcoal/90 transition-colors">
-                          <FaDownload className="w-4 h-4" />
-                        </button>
+                      {/* Square card with image */}
+                      <div className="aspect-square relative overflow-hidden bg-subtleGray">
+                        <img
+                          src={thumbnail}
+                          alt={epaper.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = '/logo1.png';
+                          }}
+                        />
+                        {/* Overlay with date */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                          <p className="text-white text-xs font-medium">{epaper.date}</p>
+                        </div>
                       </div>
-                    </div>
+                      {/* Title */}
+                      <div className="p-3">
+                        <h3 className="text-sm md:text-base font-bold text-deepCharcoal line-clamp-2 mb-1">{epaper.title}</h3>
+                        {/* Desktop: Show buttons */}
+                        <div className="hidden md:flex space-x-2 mt-2">
+                          <span className="flex-1 bg-gradient-to-r from-newsRed to-editorialBlue text-cleanWhite px-3 py-1.5 rounded text-xs font-semibold text-center">
+                            पेपर पहा
+                          </span>
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Download functionality
+                            }}
+                            className="flex items-center justify-center bg-deepCharcoal text-cleanWhite px-3 py-1.5 rounded text-xs"
+                          >
+                            <FaDownload className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </Link>
                   );
                   })
                 )}
