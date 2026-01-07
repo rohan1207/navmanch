@@ -580,8 +580,8 @@ const EPaperSection = () => {
       const linePadding = 8; // Padding above and below the line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        // Logo size: 18% of section width or max 150px height (increased from 15% and 120px)
-        logoHeight = Math.min(sectionImg.width * 0.18, 150);
+        // Logo size: 22% of section width or max 180px height (increased for better visibility)
+        logoHeight = Math.min(sectionImg.width * 0.22, 180);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
         // Logo height + top padding (20px) + bottom padding (8px) + line (2px) + line bottom padding (8px)
@@ -806,7 +806,7 @@ const EPaperSection = () => {
                     <img
                       src="/logo1.png"
                       alt="नव मंच"
-                      className="h-24 md:h-28 w-auto"
+                      className="h-32 md:h-40 w-auto"
                     />
                     </div>
                     {/* Minimal bold black line below logo */}
@@ -874,7 +874,7 @@ const EPaperSection = () => {
                 <img
                   src="/logo1.png"
                   alt="नव मंच"
-                  className="h-20 w-auto"
+                  className="h-28 w-auto"
                 />
               {/* Minimal bold black line below logo */}
               <div className="w-full h-0.5 bg-black mt-2"></div>

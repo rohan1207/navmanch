@@ -225,7 +225,7 @@ const Header = () => {
               <img
                 src="/logo1.png"
                 alt="नव मंच"
-                className="h-20 sm:h-24 w-auto"
+                className="h-24 sm:h-28 w-auto"
               />
             </Link>
 
@@ -268,7 +268,7 @@ const Header = () => {
               <img
                 src="/logo1.png"
                 alt="नव मंच"
-                className="h-24 md:h-28 w-auto"
+                className="h-28 md:h-32 w-auto"
               />
             </Link>
 
