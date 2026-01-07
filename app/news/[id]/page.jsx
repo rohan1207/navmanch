@@ -91,11 +91,14 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    // Get image - prioritize featuredImage, then imageGallery, then first <img> from content
+    // Get image - prioritize featuredImage, then generic image, then imageGallery, then first <img> from content
     let imageUrl = '';
     
     if (article.featuredImage && article.featuredImage.trim() !== '') {
       imageUrl = article.featuredImage.trim();
+    } else if (article.image && String(article.image).trim() !== '') {
+      // Many articles only have `image` field (used in UI) – use it as second priority
+      imageUrl = String(article.image).trim();
     } else if (article.imageGallery && article.imageGallery.length > 0) {
       const firstImage = article.imageGallery.find(img => img && img.trim() !== '');
       if (firstImage) imageUrl = firstImage.trim();
