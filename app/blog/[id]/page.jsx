@@ -5,13 +5,7 @@ export const metadata = {
   description: 'नव मंच वर प्रकाशित ब्लॉग वाचा. Voices & Columns blogs on Nav Manch.',
 };
 
-export default function BlogsPage() {
+export default function BlogDetailPage() {
   return <Blogs />;
 }
-
-
-
-
-
-
 

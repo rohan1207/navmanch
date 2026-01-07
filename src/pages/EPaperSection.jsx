@@ -1,47 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaDownload } from 'react-icons/fa';
-import { getEpaper } from '../utils/api';
+import { getEpapers } from '../utils/api';
 import ShareButtons from '../components/ShareButtons';
+import SEO from '../components/SEO';
 import { isSubscribed } from '../utils/subscription';
 import SubscribePopup from '../components/SubscribePopup';
-
-// Hide header components on mobile for epaper section pages
-const hideHeaderOnMobile = () => {
-  if (typeof window === 'undefined') return;
-  const isMobile = window.innerWidth < 768; // md breakpoint
-  if (isMobile) {
-    const header = document.querySelector('header');
-    const breakingNews = document.querySelector('[class*="BreakingNews"]');
-    const navigation = document.querySelector('nav');
-    const contactRibbon = document.querySelector('[class*="ContactRibbon"]');
-    const footer = document.querySelector('footer');
-    
-    if (header) header.style.display = 'none';
-    if (breakingNews) breakingNews.style.display = 'none';
-    if (navigation) navigation.style.display = 'none';
-    if (contactRibbon) contactRibbon.style.display = 'none';
-    if (footer) footer.style.display = 'none';
-  }
-};
-
-const showHeaderOnMobile = () => {
-  if (typeof window === 'undefined') return;
-  const header = document.querySelector('header');
-  const breakingNews = document.querySelector('[class*="BreakingNews"]');
-  const navigation = document.querySelector('nav');
-  const contactRibbon = document.querySelector('[class*="ContactRibbon"]');
-  const footer = document.querySelector('footer');
-  
-  if (header) header.style.display = '';
-  if (breakingNews) breakingNews.style.display = '';
-  if (navigation) navigation.style.display = '';
-  if (contactRibbon) contactRibbon.style.display = '';
-  if (footer) footer.style.display = '';
-};
 
 // Mobile zoomable image component for sections
 const SectionZoomableImage = ({ imageUrl, alt }) => {
@@ -50,14 +17,15 @@ const SectionZoomableImage = ({ imageUrl, alt }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
+  const lastTapRef = useRef(0);
+  const tapTimeoutRef = useRef(null);
   
+  // Prevent body scroll on mobile
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   useEffect(() => {
@@ -76,26 +44,36 @@ const SectionZoomableImage = ({ imageUrl, alt }) => {
 
     const handleTouchStart = (e) => {
       if (e.touches.length === 2) {
+        // Pinch zoom - prevent default to allow zoom
         e.preventDefault();
+        e.stopPropagation();
         initialDistance = getDistance(e.touches[0], e.touches[1]);
         initialScale = scale;
       } else if (e.touches.length === 1 && scale > 1) {
+        // Pan when zoomed - prevent default to allow pan
+        e.preventDefault();
+        e.stopPropagation();
         setIsDragging(true);
         setDragStart({
           x: e.touches[0].clientX - position.x,
           y: e.touches[0].clientY - position.y
         });
       }
+      // If scale is 1, allow normal scrolling (don't prevent default)
     };
 
     const handleTouchMove = (e) => {
       if (e.touches.length === 2) {
+        // Pinch zoom - prevent default
         e.preventDefault();
+        e.stopPropagation();
         const currentDistance = getDistance(e.touches[0], e.touches[1]);
-        const newScale = Math.max(1, Math.min(3, (currentDistance / initialDistance) * initialScale));
+        const newScale = Math.max(1, Math.min(5, (currentDistance / initialDistance) * initialScale));
         setScale(newScale);
       } else if (e.touches.length === 1 && isDragging && scale > 1) {
+        // Pan when zoomed - prevent default
         e.preventDefault();
+        e.stopPropagation();
         const newX = e.touches[0].clientX - dragStart.x;
         const newY = e.touches[0].clientY - dragStart.y;
         
@@ -107,76 +85,96 @@ const SectionZoomableImage = ({ imageUrl, alt }) => {
           y: Math.max(-maxY, Math.min(maxY, newY))
         });
       }
+      // If scale is 1 and not dragging, allow normal scroll (don't prevent default)
     };
 
-    const handleTouchEnd = () => {
+
+    const handleTouchEndWithDoubleTap = (e) => {
+      e.stopPropagation();
       setIsDragging(false);
-      if (scale < 1) setScale(1);
-      if (scale === 1) {
-        setPosition({ x: 0, y: 0 });
-      }
-    };
 
-    let lastTap = 0;
-    const handleDoubleTap = (e) => {
+      // Handle double tap
       const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTap;
+      const tapLength = currentTime - lastTapRef.current;
+      
       if (tapLength < 300 && tapLength > 0) {
+        // Double tap detected
         e.preventDefault();
-        if (scale === 1) {
-          setScale(2);
+        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+        // Toggle zoom: 1x -> 2x, 2x -> 1x
+        setScale(prevScale => {
+          if (prevScale === 1) {
+            return 2;
         } else {
-          setScale(1);
           setPosition({ x: 0, y: 0 });
+            return 1;
         }
+        });
+        // Reset lastTap to current time minus 400ms so next tap starts fresh
+        // This prevents immediate triple tap but allows new double tap sequence
+        lastTapRef.current = currentTime - 400;
+      } else {
+        // Single tap - wait to see if it's a double tap
+        lastTapRef.current = currentTime;
+        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = setTimeout(() => {
+          // Single tap confirmed after delay - do nothing for single tap
+          // Only reset if scale is invalid
+          setScale(prevScale => prevScale < 1 ? 1 : prevScale);
+        }, 300);
       }
-      lastTap = currentTime;
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd);
-    container.addEventListener('touchend', handleDoubleTap);
+    container.addEventListener('touchend', handleTouchEndWithDoubleTap, { passive: false });
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('touchend', handleDoubleTap);
+      container.removeEventListener('touchend', handleTouchEndWithDoubleTap);
+      if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
     };
   }, [scale, position, isDragging, dragStart]);
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden touch-none bg-cleanWhite"
+      className="relative w-full min-h-full bg-cleanWhite"
       style={{
-        minHeight: 'calc(100vh - 60px)',
-        touchAction: 'none',
-        userSelect: 'none'
+        touchAction: 'pan-y pinch-zoom',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        padding: 0
       }}
     >
       <div
         style={{
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-          transformOrigin: 'center center',
+          transformOrigin: 'top center',
           transition: scale === 1 ? 'transform 0.3s ease-out' : 'none',
           width: '100%',
-          minHeight: 'calc(100vh - 60px)',
+          minHeight: '100%',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
-          padding: '2px'
+          padding: 0
         }}
       >
         <img
           src={imageUrl}
           alt={alt}
-          className="w-full h-auto object-contain"
           style={{
+            width: '100%',
+            height: 'auto',
             maxWidth: '100%',
-            pointerEvents: 'none',
-            imageRendering: 'crisp-edges'
+            display: 'block',
+            objectFit: 'contain',
+            pointerEvents: scale > 1 ? 'auto' : 'none',
+            imageRendering: 'crisp-edges',
+            WebkitUserDrag: 'none',
+            userDrag: 'none'
           }}
           onError={(e) => {
             console.error('Error loading section image:', imageUrl);
@@ -184,8 +182,9 @@ const SectionZoomableImage = ({ imageUrl, alt }) => {
         />
       </div>
       
+      {/* Zoom indicator */}
       {scale > 1 && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs z-10">
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs z-10">
           {Math.round(scale * 100)}%
         </div>
       )}
@@ -193,31 +192,73 @@ const SectionZoomableImage = ({ imageUrl, alt }) => {
   );
 };
 
-const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
+const EPaperSection = () => {
+  const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = params?.id;
+  const pageNo = params?.pageNo;
+  const sectionId = params?.sectionId;
   const [epaper, setEpaper] = useState(null);
   const [page, setPage] = useState(null);
   const [section, setSection] = useState(null);
   const [croppedImageUrl, setCroppedImageUrl] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showSubscribePopup, setShowSubscribePopup] = useState(false);
+  
+  // Check if it's a shared link
+  const isSharedLink = searchParams?.toString().includes('shared=true');
 
+  // Track window size for responsive image sizing
   useEffect(() => {
-    // Hide header components on mobile
-    hideHeaderOnMobile();
-    
-    if (typeof document !== 'undefined') {
-      const isMobile = window.innerWidth < 768;
-      if (isMobile) {
-        document.body.style.overflow = 'hidden';
-      }
-      return () => {
-        document.body.style.overflow = '';
-        showHeaderOnMobile();
-      };
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Check subscription on load (unless shared link)
+  useEffect(() => {
+    if (!isSharedLink && !isSubscribed()) {
+      setShowSubscribePopup(true);
     }
+  }, [isSharedLink]);
+
+  // Listen for subscription updates
+  useEffect(() => {
+    const handleSubscriptionUpdate = () => {
+      if (isSubscribed()) {
+        setShowSubscribePopup(false);
+      }
+    };
     
+    window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
     return () => {
-      showHeaderOnMobile();
+      window.removeEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+    };
+  }, []);
+
+  // Prevent body scroll on mobile when viewing section
+  useEffect(() => {
+    const isMobileCheck = window.innerWidth < 768;
+    if (isMobileCheck) {
+      document.body.style.overflow = 'hidden';
+      // Prevent whole page zoom
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      }
+    }
+    return () => {
+      document.body.style.overflow = '';
+      // Restore viewport
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+      }
     };
   }, []);
 
@@ -225,15 +266,39 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const found = await getEpaper(epaperId);
-        
-        if (!found) {
-          console.log('❌ Epaper not found for id:', epaperId);
+        const epapers = await getEpapers();
+        if (!epapers || epapers.length === 0) {
+          console.log('No epapers found');
           setLoading(false);
-          setTimeout(() => router.push('/epaper2'), 500);
+          setTimeout(() => router.push('/epaper'), 500);
           return;
         }
         
+        // Try to find epaper by slug first, then by id
+        const found = epapers.find(ep => {
+          const epSlug = ep.slug;
+          const epId = ep.id !== undefined ? ep.id : ep._id;
+          
+          // Match by slug first
+          if (epSlug && epSlug === id) return true;
+          
+          // Then match by ID
+          if (epId !== undefined && epId !== null) {
+            const epIdStr = String(epId);
+            const searchIdStr = String(id);
+            return epIdStr === searchIdStr;
+          }
+          
+          return false;
+        });
+        
+        if (!found) {
+          console.log('❌ Epaper not found for id:', id);
+          console.log('Available epaper IDs:', epapers.map(ep => ({ id: ep.id, _id: ep._id, title: ep.title })));
+          setLoading(false);
+          setTimeout(() => router.push('/epaper'), 500);
+          return;
+        }
         console.log('✅ Found epaper:', found.title);
         setEpaper(found);
 
@@ -244,39 +309,61 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
         if (!foundPage) {
           console.log('❌ Page not found:', pageNo);
           setLoading(false);
-          setTimeout(() => router.push(`/epaper/${epaperId}`), 500);
+          setTimeout(() => router.push(`/epaper/${id}`), 500);
           return;
         }
         console.log('✅ Found page:', foundPage.pageNo);
         setPage(foundPage);
 
-        // Find section by ID first, then by _id, then by slug
-        // Backend uses 'news' not 'newsItems'
-        const foundSection = (foundPage.news || foundPage.newsItems)?.find(n => {
+        // Log all available sections for debugging
+        console.log('🔍 Looking for section:', sectionId);
+        console.log('📋 Available sections:', foundPage.news?.map(n => ({
+          slug: n.slug,
+          id: n.id,
+          _id: n._id ? String(n._id) : null,
+          title: n.title
+        })));
+
+        // Find section by ID first (most reliable), then by slug, then by _id
+        // IMPORTANT: Check ID first because slugs like "Untitled" are not unique
+        const foundSection = foundPage.news?.find(n => {
+          const nSlug = n.slug;
           const nId = n.id !== undefined ? n.id : null;
           const n_id = n._id ? String(n._id) : null;
-          const nSlug = n.slug;
           const sId = sectionId;
           
+          // Match by ID first (most reliable - always unique)
           if (nId !== undefined && nId !== null) {
-            return String(nId) === String(sId) || nId === parseInt(sId) || nId === sId;
+            const match = String(nId) === String(sId) || nId === parseInt(sId) || nId === sId;
+            if (match) {
+              console.log('✅ Matched by id:', nId, '===', sId);
+              return true;
+            }
           }
           
+          // Then match by _id (MongoDB ObjectId) - also unique
           if (n_id) {
-            return n_id === String(sId) || String(n_id) === String(sId);
+            const match = n_id === String(sId) || String(n_id) === String(sId);
+            if (match) {
+              console.log('✅ Matched by _id:', n_id, '===', sId);
+              return true;
+            }
           }
           
+          // Finally match by slug (only if it's meaningful and unique)
+          // Skip if slug is "Untitled" or empty - those are not unique
           if (nSlug && nSlug.trim() !== '' && nSlug.toLowerCase() !== 'untitled' && nSlug === sId) {
+            console.log('✅ Matched by slug:', nSlug, '===', sId);
             return true;
           }
           
           return false;
         });
-        
         if (!foundSection) {
           console.log('❌ Section not found:', sectionId);
+          console.log('Available sections:', foundPage.news?.map(n => ({ id: n.id, title: n.title })));
           setLoading(false);
-          setTimeout(() => router.push(`/epaper/${epaperId}`), 500);
+          setTimeout(() => router.push(`/epaper/${id}`), 500);
           return;
         }
         console.log('✅ Found section:', foundSection.id);
@@ -289,16 +376,16 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
       } catch (error) {
         console.error('Error loading section:', error);
         setLoading(false);
-        setTimeout(() => router.push('/epaper2'), 500);
+        setTimeout(() => router.push('/epaper'), 500);
       }
     };
     
-    if (epaperId && pageNo && sectionId) {
+    if (id && pageNo && sectionId) {
       loadData();
     } else {
-      router.push('/epaper2');
+      router.push('/epaper');
     }
-  }, [epaperId, pageNo, sectionId, router]);
+  }, [id, pageNo, sectionId, router]);
 
   // Helper to generate cropped Cloudinary URL
   const getCroppedImageUrl = (pageImageUrl, newsItem) => {
@@ -332,6 +419,7 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
     }
   };
 
+  // Format date helper
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -342,36 +430,52 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
     });
   };
 
-  const frontendBase = 'https://navmanchnews.com';
+  // Format date for footer (1/01/2026 format)
+  const formatDateForFooter = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Use current origin for sharing; backend social preview ensures OG tags
+  // When custom domain points here, origin will be https://navmanchnews.com
+  const frontendBase = typeof window !== 'undefined' ? window.location.origin : 'https://navmanchnews.com';
   
+  // Build clean URL with IDs
   let epaperIdentifier;
   if (epaper) {
+    // Use ID for e-paper (cleaner than encoded slug)
     if (epaper.id !== undefined && epaper.id !== null) {
       epaperIdentifier = String(epaper.id);
     } else if (epaper._id) {
       epaperIdentifier = String(epaper._id);
     } else {
-      epaperIdentifier = epaperId;
+      epaperIdentifier = id; // Fallback
     }
   } else {
-    epaperIdentifier = epaperId;
+    epaperIdentifier = id;
   }
   
   let sectionIdentifier;
   if (section) {
+    // Always use ID for sections (never "Untitled" slug)
     if (section.id !== undefined && section.id !== null) {
       sectionIdentifier = String(section.id);
     } else if (section._id) {
       sectionIdentifier = String(section._id);
     } else {
-      sectionIdentifier = sectionId;
+      sectionIdentifier = sectionId; // Fallback
     }
   } else {
     sectionIdentifier = sectionId;
   }
   
-  const shareUrl = `${frontendBase}/epaper/${epaperIdentifier}/page/${page?.pageNo || '1'}/section/${sectionIdentifier}`;
+  const shareUrl = `${frontendBase}/epaper/${epaperIdentifier}/page/${page?.pageNo || '1'}/section/${sectionIdentifier}${typeof window !== 'undefined' ? window.location.search : ''}`;
   
+  // Clean title - remove "Untitled" and empty titles
   const getCleanSectionTitle = () => {
     if (!section || !section.title) return 'बातमी विभाग';
     const title = section.title.trim();
@@ -390,37 +494,47 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
     return title;
   };
   
+  // Clean section title - remove "Untitled"
+  const getShareSectionTitle = () => {
+    if (!section || !section.title) return 'बातमी विभाग';
+    const title = section.title.trim();
+    if (title === '' || title.toLowerCase() === 'untitled') {
+      return 'बातमी विभाग';
+    }
+    return title;
+  };
+  
   const shareTitle = epaper && section 
-    ? `${getCleanSectionTitle()} - ${getCleanEpaperTitle()}`
+    ? `${getShareSectionTitle()} - ${getCleanEpaperTitle()}`
     : 'नव मंच ई-पेपर';
   
+  // Description without date duplication - backend OG tags handle the preview card
   const shareDescription = epaper && section
-    ? `${getCleanEpaperTitle()} - पृष्ठ ${page.pageNo} - ${formatDate(epaper.date)}`
+    ? `${getCleanEpaperTitle()} - पृष्ठ ${page.pageNo}`
     : 'नव मंच ई-पेपर';
   
+  // Ensure image URL is absolute for proper preview cards
   const getAbsoluteImageUrl = (imgUrl) => {
     if (!imgUrl) return '';
     if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
       return imgUrl;
     }
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}${imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`}`;
-    }
-    return imgUrl;
+    return `${window.location.origin}${imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`}`;
   };
   
+  // Use full page image for section share cards (more reliable than cropped section)
   const shareImage = getAbsoluteImageUrl(page?.image || epaper?.thumbnail || '');
 
-  const [showSubscribePopup, setShowSubscribePopup] = useState(false);
-
-  // Download section image with logo
+  // Download section image with logo on top
   const downloadSectionWithLogo = async (sectionImageUrl, sectionTitle) => {
     // Check subscription before allowing download
-    if (!isSubscribed()) {
+    if (!isSharedLink && !isSubscribed()) {
       setShowSubscribePopup(true);
       return;
     }
+    
     try {
+      // Load section image
       const sectionImg = new Image();
       sectionImg.crossOrigin = 'anonymous';
       
@@ -430,6 +544,7 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
         sectionImg.src = sectionImageUrl;
       });
 
+      // Load logo
       const logoImg = new Image();
       logoImg.crossOrigin = 'anonymous';
       
@@ -437,39 +552,100 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
         logoImg.onload = resolve;
         logoImg.onerror = () => {
           console.warn('Logo failed to load, using watermark approach');
-          resolve();
+          resolve(); // Continue even if logo fails
         };
         logoImg.src = '/logo1.png';
       });
 
+      // Create canvas - extend from top to place logo above clip
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
+      // Calculate logo dimensions
       let logoHeight = 0;
       let logoWidth = 0;
       let logoAreaHeight = 0;
+      const lineHeight = 2; // Height of the line below logo (2px)
+      const linePadding = 8; // Padding above and below the line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        logoHeight = Math.min(sectionImg.width * 0.12, 100);
+        // Logo size: 18% of section width or max 150px height (increased from 15% and 120px)
+        logoHeight = Math.min(sectionImg.width * 0.18, 150);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
-        logoAreaHeight = logoHeight + 40;
+        // Logo height + top padding (20px) + bottom padding (8px) + line (2px) + line bottom padding (8px)
+        logoAreaHeight = logoHeight + 20 + linePadding + lineHeight + linePadding;
       } else {
+        // If logo fails to load, use watermark approach
         logoAreaHeight = 0;
       }
 
-      canvas.width = sectionImg.width;
-      canvas.height = sectionImg.height + logoAreaHeight;
+      // Calculate footer dimensions
+      const footerPadding = 20; // Top and bottom padding
+      const footerLineHeight = 20; // Line height for text
+      const footerFontSize = Math.max(12, Math.min(sectionImg.width * 0.02, 16)); // Responsive font size
+      
+      // Prepare footer text
+      const websiteUrl = 'navmanchnews.com/epaper';
+      const dateText = formatDateForFooter(epaper?.date || '');
+      const pageText = `पृष्ठ ${page?.pageNo || ''}`;
+      
+      // Calculate footer height
+      // Website URL (1 line) + spacing + date and page (1 line) + padding
+      const footerHeight = footerLineHeight + 8 + footerLineHeight + (footerPadding * 2);
 
+      // Set canvas size: section width, extended height (section + logo area + footer)
+      canvas.width = sectionImg.width;
+      canvas.height = sectionImg.height + logoAreaHeight + footerHeight;
+
+      // Fill white background
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Draw section image below logo area
       ctx.drawImage(sectionImg, 0, logoAreaHeight);
 
+      // Draw footer at the bottom
+      const footerY = sectionImg.height + logoAreaHeight;
+      
+      // Set font properties - Use system fonts that support Devanagari
+      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Hindi', 'Hind', Arial, sans-serif`;
+      ctx.fillStyle = '#666666'; // Gray color for metadata
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      
+      // Draw website URL
+      ctx.fillStyle = '#666666';
+      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      ctx.fillText(websiteUrl, canvas.width / 2, footerY + footerPadding);
+      
+      // Draw date and page number side by side
+      const metadataY = footerY + footerPadding + footerLineHeight + 8;
+      ctx.fillStyle = '#333333'; // Darker for metadata
+      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      
+      // Calculate text widths for centering
+      const dateWidth = ctx.measureText(dateText).width;
+      const separatorWidth = ctx.measureText(' • ').width;
+      const pageWidth = ctx.measureText(pageText).width;
+      const totalWidth = dateWidth + separatorWidth + pageWidth;
+      const startX = (canvas.width - totalWidth) / 2;
+      
+      // Draw date
+      ctx.fillText(dateText, startX, metadataY);
+      
+      // Draw separator
+      ctx.fillText(' • ', startX + dateWidth, metadataY);
+      
+      // Draw page number
+      ctx.fillText(pageText, startX + dateWidth + separatorWidth, metadataY);
+
+      // Draw logo above the clip (centered)
       if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0) {
         const logoX = (canvas.width - logoWidth) / 2;
-        const logoY = 20;
+        const logoY = 20; // 20px from top
         
+        // Draw logo
         ctx.drawImage(
           logoImg,
           logoX,
@@ -477,8 +653,35 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
           logoWidth,
           logoHeight
         );
+        
+        // Draw minimal bold black line below logo
+        const lineY = logoY + logoHeight + linePadding;
+        ctx.fillStyle = '#000000'; // Black
+        ctx.fillRect(0, lineY, canvas.width, lineHeight);
+      } else if (logoImg.complete && logoImg.naturalWidth > 0) {
+        // Fallback: Watermark approach - spread logo with low opacity
+        const watermarkSize = Math.min(sectionImg.width * 0.3, 200);
+        const watermarkAspectRatio = logoImg.width / logoImg.height;
+        const watermarkWidth = watermarkSize * watermarkAspectRatio;
+        const watermarkHeight = watermarkSize;
+        
+        // Save context for opacity
+        ctx.save();
+        ctx.globalAlpha = 0.15; // Low opacity for watermark effect
+        
+        // Draw watermark in center
+        ctx.drawImage(
+          logoImg,
+          (sectionImg.width - watermarkWidth) / 2,
+          (sectionImg.height - watermarkHeight) / 2,
+          watermarkWidth,
+          watermarkHeight
+        );
+        
+        ctx.restore();
       }
 
+      // Convert to blob and download
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
@@ -508,10 +711,14 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
     );
   }
 
+  // Calculate optimal display size based on section dimensions (for desktop only)
   const sectionAspectRatio = section.width / section.height;
+  
+  // Desktop: scale up but limit
   const maxWidth = Math.min(1200, section.width * 2);
   const maxHeight = Math.min(1600, section.height * 2);
   
+  // Maintain aspect ratio for desktop
   let displayWidth = maxWidth;
   let displayHeight = maxWidth / sectionAspectRatio;
   
@@ -521,66 +728,80 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
   }
 
   return (
-    <div className="min-h-screen bg-subtleGray">
-      {/* Desktop Header */}
-      <div className="hidden md:block bg-cleanWhite border-b-2 border-subtleGray py-3 sm:py-4 sticky top-0 z-40 shadow-sm">
-        <div className="container mx-auto px-3 sm:px-4">
-          <div className="flex items-center justify-between gap-2">
-            <Link
-              href={`/epaper/${epaperId}`}
-              className="flex items-center gap-1.5 sm:gap-2 text-metaGray hover:text-deepCharcoal transition-colors font-semibold text-sm sm:text-base"
-            >
-              <FaArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>मागे जा</span>
-            </Link>
-            <ShareButtons
-              title={shareTitle}
-              description={shareDescription}
-              image={shareImage}
-              url={shareUrl}
-            />
+    <>
+      <SEO 
+        title={shareTitle}
+        description={shareDescription}
+        image={shareImage}
+        url={shareUrl}
+        type="article"
+      />
+      <div className="min-h-screen bg-subtleGray">
+        {/* Desktop Header */}
+        <div className="hidden md:block bg-cleanWhite border-b-2 border-subtleGray py-3 sm:py-4 sticky top-0 z-40 shadow-sm">
+          <div className="container mx-auto px-3 sm:px-4">
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                href={`/epaper/${id}`}
+                className="flex items-center gap-1.5 sm:gap-2 text-metaGray hover:text-deepCharcoal transition-colors font-semibold text-sm sm:text-base"
+              >
+                <FaArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>मागे जा</span>
+              </Link>
+              <ShareButtons
+                title={shareTitle}
+                description={shareDescription}
+                image={shareImage}
+                url={shareUrl}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Header - Full screen with only back and share */}
-      <div className="md:hidden bg-cleanWhite/95 backdrop-blur-sm border-b border-subtleGray py-2.5 fixed top-0 left-0 right-0 z-[100] shadow-md">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <Link
-              href={`/epaper/${epaperId}`}
-              className="flex items-center gap-2 text-deepCharcoal hover:text-newsRed transition-colors font-semibold text-sm"
-              onClick={() => showHeaderOnMobile()}
-            >
-              <FaArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">मागे</span>
-            </Link>
-            <ShareButtons
-              title={shareTitle}
-              description={shareDescription}
-              image={shareImage}
-              url={shareUrl}
-            />
+        {/* Mobile Header - Minimal - Fixed at top */}
+        <div className="md:hidden bg-cleanWhite border-b border-subtleGray py-2 fixed top-0 left-0 right-0 z-50 shadow-sm">
+          <div className="container mx-auto px-3">
+            <div className="flex items-center justify-between">
+              <Link
+                href={`/epaper/${id}`}
+                className="flex items-center gap-2 text-deepCharcoal hover:text-newsRed transition-colors font-semibold text-sm"
+              >
+                <FaArrowLeft className="w-4 h-4" />
+                <span>मागे</span>
+              </Link>
+              <ShareButtons
+                title={shareTitle}
+                description={shareDescription}
+                image={shareImage}
+                url={shareUrl}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="max-w-6xl mx-auto">
-          {/* Desktop: Full layout */}
+          {/* Desktop: Full layout with logo and footer */}
           <div className="hidden md:block">
+            {/* Image Container with Logo Above - Adapts to image width */}
             <div className="bg-cleanWhite overflow-hidden rounded-t-xl flex flex-col items-center">
               {croppedImageUrl ? (
                 <div className="flex flex-col items-center w-full">
-                  <div className="flex items-center justify-center pt-2 pb-0" style={{ width: `${displayWidth}px`, maxWidth: '100%' }}>
+                  {/* Logo - Positioned directly above image with minimal gap, matches image width */}
+                  <div className="flex flex-col items-center w-full" style={{ width: `${displayWidth}px`, maxWidth: '100%' }}>
+                    <div className="flex items-center justify-center pt-2 pb-0">
                     <img
                       src="/logo1.png"
                       alt="नव मंच"
-                      className="h-16 md:h-20 w-auto"
+                      className="h-24 md:h-28 w-auto"
                     />
+                    </div>
+                    {/* Minimal bold black line below logo */}
+                    <div className="w-full h-0.5 bg-black my-2" style={{ maxWidth: `${displayWidth}px` }}></div>
                   </div>
                   
+                  {/* Cropped Image */}
                   <div className="flex items-center justify-center pt-1 px-2">
                     <img
                       src={croppedImageUrl}
@@ -606,83 +827,122 @@ const EPaperSection = ({ epaperId, pageNo, sectionId }) => {
               )}
             </div>
             
-            <div className="bg-cleanWhite flex items-center justify-center py-4">
-              <button
-                onClick={() => downloadSectionWithLogo(croppedImageUrl || page.image, getCleanSectionTitle())}
-                className="flex items-center gap-2 px-6 py-3 bg-newsRed text-white rounded-lg font-semibold hover:bg-newsRed/90 transition-colors shadow-md hover:shadow-lg"
-              >
-                <FaDownload className="w-4 h-4" />
-                <span>क्लिप डाउनलोड करा</span>
-              </button>
-            </div>
-            
-            <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-4 pb-6 rounded-b-xl">
-              <div className="text-center mb-4">
-                <p className="text-xs md:text-sm text-metaGray font-medium tracking-wide">
-                  navmanchnews.com/epaper
-                </p>
+            {/* Download Button and Footer Section - Inside clip container */}
+            <div className="bg-cleanWhite rounded-b-xl pt-4 pb-6">
+              {/* Download Button */}
+              <div className="flex items-center justify-center py-4">
+                <button
+                  onClick={() => downloadSectionWithLogo(croppedImageUrl || page.image, getCleanSectionTitle())}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-newsRed text-white rounded-full font-semibold hover:bg-newsRed/90 transition-colors shadow-md hover:shadow-lg"
+                >
+                  <FaDownload className="w-4 h-4" />
+                  <span className="text-sm">क्लिप डाउनलोड करा</span>
+                </button>
               </div>
               
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 text-xs md:text-sm text-metaGray">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-deepCharcoal">तारीख:</span>
-                  <span>{formatDate(epaper.date)}</span>
+              {/* Footer Section - Metadata */}
+              <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-4 pb-4">
+                {/* Website URL */}
+                <div className="text-center mb-3">
+                  <a 
+                    href="https://navmanchnews.com/epaper" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs md:text-sm text-metaGray hover:text-newsRed font-medium tracking-wide transition-colors"
+                  >
+                    navmanchnews.com/epaper
+                  </a>
                 </div>
-                <div className="hidden md:block w-px h-4 bg-subtleGray"></div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-deepCharcoal">ई-पेपर:</span>
-                  <span className="max-w-[200px] truncate">{getCleanEpaperTitle()}</span>
-                </div>
-                <div className="hidden md:block w-px h-4 bg-subtleGray"></div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-deepCharcoal">पृष्ठ:</span>
-                  <span>{page.pageNo}</span>
-                </div>
+                
+                {/* Date and Page Number - Side by side */}
+                <div className="flex items-center justify-center gap-4 px-4 text-xs md:text-sm text-metaGray">
+                  <span>{formatDateForFooter(epaper.date)}</span>
+                  <span className="font-semibold text-deepCharcoal">•</span>
+                  <span>पृष्ठ {page.pageNo}</span>
+                  </div>
               </div>
             </div>
           </div>
 
-          {/* Mobile: Full screen zoomable view */}
-          <div className="md:hidden pt-14">
-            <div className="w-full bg-cleanWhite flex flex-col items-center">
-              <div className="flex items-center justify-center pt-1 pb-0 w-full px-2">
+          {/* Mobile: Full screen scrollable view with fixed header and footer */}
+          <div className="md:hidden fixed inset-0 bg-cleanWhite flex flex-col" style={{ top: '48px', bottom: 0, height: 'calc(100vh - 48px)' }}>
+            {/* Logo - Fixed at top, minimal padding */}
+            <div className="flex-shrink-0 bg-cleanWhite border-b border-subtleGray/30 py-2 px-0 flex flex-col items-center">
                 <img
                   src="/logo1.png"
                   alt="नव मंच"
-                  className="h-12 w-auto"
+                  className="h-20 w-auto"
                 />
+              {/* Minimal bold black line below logo */}
+              <div className="w-full h-0.5 bg-black mt-2"></div>
               </div>
               
-              <div className="w-full bg-cleanWhite flex items-center justify-center">
+            {/* Scrollable Image Container - Full width, scrollable, shows top initially */}
+            {croppedImageUrl && (
+              <div 
+                className="flex-1 overflow-y-auto overflow-x-hidden bg-cleanWhite relative" 
+                style={{ 
+                  minHeight: 0,
+                  touchAction: 'pan-y pinch-zoom',
+                  WebkitOverflowScrolling: 'touch'
+                }}
+              >
                 <SectionZoomableImage 
                   imageUrl={croppedImageUrl || page.image}
                   alt={getCleanSectionTitle()}
                 />
               </div>
-            </div>
+            )}
             
-            <div className="w-full bg-cleanWhite px-4 py-4 pb-6">
+            {/* Footer Section - Fixed at bottom, minimal padding */}
+            <div className="flex-shrink-0 bg-cleanWhite border-t border-subtleGray/30">
+              {/* Download Button */}
+              <div className="flex items-center justify-center py-2.5 px-4">
               <button
                 onClick={() => downloadSectionWithLogo(croppedImageUrl || page.image, getCleanSectionTitle())}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-newsRed text-white rounded-lg font-semibold hover:bg-newsRed/90 transition-colors shadow-lg"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-newsRed text-white rounded-full font-semibold hover:bg-newsRed/90 transition-colors shadow-lg"
+                  style={{ touchAction: 'auto' }}
               >
-                <FaDownload className="w-5 h-5" />
-                <span>क्लिप डाउनलोड करा</span>
+                  <FaDownload className="w-4 h-4" />
+                  <span className="text-sm">क्लिप डाउनलोड करा</span>
               </button>
+              </div>
+              
+              {/* Footer Metadata - Compact */}
+              <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2.5 pb-3 px-4">
+                {/* Website URL */}
+                <div className="text-center mb-2">
+                  <a 
+                    href="https://navmanchnews.com/epaper" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-metaGray hover:text-newsRed font-medium tracking-wide transition-colors"
+                  >
+                    navmanchnews.com/epaper
+                  </a>
+                </div>
+                
+                {/* Date and Page Number - Side by side */}
+                <div className="flex items-center justify-center gap-3 text-xs text-metaGray">
+                  <span>{formatDateForFooter(epaper.date)}</span>
+                  <span className="font-semibold text-deepCharcoal">•</span>
+                  <span>पृष्ठ {page.pageNo}</span>
+                  </div>
+              </div>
             </div>
           </div>
         </div>
+        </div>
       </div>
       
-      {/* Subscribe Popup for download */}
+      {/* Subscribe Popup */}
       <SubscribePopup 
         isOpen={showSubscribePopup} 
         onClose={() => setShowSubscribePopup(false)}
-        allowClose={false}
+        allowClose={false} // Don't allow close - user must subscribe
       />
-    </div>
+    </>
   );
 };
 
 export default EPaperSection;
-

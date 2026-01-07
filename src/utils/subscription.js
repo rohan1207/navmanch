@@ -45,7 +45,41 @@ export const setSubscription = (subscriberData) => {
   }
 };
 
-export const isSubscribed = () => {
+// Check subscription with backend API first (using email/phone if available)
+export const isSubscribed = async (email = null, phone = null) => {
+  // If email or phone provided, check with backend
+  if (email || phone) {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+      const response = await fetch(`${API_BASE}/subscribers/check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, phone }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.exists && data.subscriber) {
+          // Update localStorage with subscriber data
+          setSubscription(data.subscriber);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking subscription with backend:', error);
+      // Fallback to localStorage
+    }
+  }
+  
+  // Fallback to localStorage check
+  const subscription = getSubscription();
+  return subscription !== null;
+};
+
+// Synchronous version for initial checks (uses localStorage cache)
+export const isSubscribedSync = () => {
   const subscription = getSubscription();
   return subscription !== null;
 };

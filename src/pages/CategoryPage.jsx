@@ -8,9 +8,9 @@ import Sidebar from '../components/Sidebar';
 import SportsScores from '../components/SportsScores';
 import { getCategories, getArticlesByCategory } from '../utils/api';
 
-const CategoryPage = ({ categoryId: propCategoryId }) => {
+const CategoryPage = () => {
   const params = useParams();
-  const categoryId = propCategoryId || params?.categoryId;
+  const categoryId = params?.categoryId;
   const [category, setCategory] = useState(null);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,11 +18,10 @@ const CategoryPage = ({ categoryId: propCategoryId }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Show UI immediately - don't block navigation
-        setLoading(false);
+        setLoading(true);
         console.log('Loading category page for categoryId:', categoryId);
         
-        // Get categories in background
+        // Get categories
         const categories = await getCategories();
         console.log('Loaded categories:', categories.length);
         
@@ -42,6 +41,8 @@ const CategoryPage = ({ categoryId: propCategoryId }) => {
         
         if (foundCategory) {
           setCategory(foundCategory);
+          // Show category immediately, don't wait for articles
+          setLoading(false);
           
           // Get articles for this category - use _id if available, otherwise id
           const catId = foundCategory._id || foundCategory.id;
@@ -83,15 +84,21 @@ const CategoryPage = ({ categoryId: propCategoryId }) => {
           setCategory(fallbackCat);
           setArticles(fallbackCat.news || []);
         }
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (categoryId) {
-      // Show UI immediately, load data in background
-      setLoading(false);
-      loadData();
-    }
+    loadData();
   }, [categoryId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-subtleGray flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-newsRed"></div>
+      </div>
+    );
+  }
 
   if (!category) {
     return (
@@ -116,7 +123,7 @@ const CategoryPage = ({ categoryId: propCategoryId }) => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center">
             <h1 className="text-3xl md:text-4xl font-bold text-deepCharcoal">
-              {category?.name || 'श्रेणी'}
+              {category.name}
             </h1>
           </div>
         </div>
@@ -139,28 +146,10 @@ const CategoryPage = ({ categoryId: propCategoryId }) => {
               </div>
             )}
 
-            {/* Loading or Empty State */}
-            {loading && articles.length === 0 ? (
-              <div className="mb-8">
-                <div className="animate-pulse space-y-4">
-                  <div className="h-64 bg-subtleGray rounded-lg"></div>
-                  <div className="h-8 bg-subtleGray rounded w-3/4"></div>
-                  <div className="h-4 bg-subtleGray rounded w-1/2"></div>
-                </div>
-              </div>
-            ) : !category ? (
-              <div className="mb-8 text-center py-12">
-                <h2 className="text-2xl font-bold text-deepCharcoal mb-4">श्रेणी सापडली नाही</h2>
-                <Link href="/" className="text-editorialBlue hover:text-newsRed">
-                  मुखपृष्ठावर परत जा
-                </Link>
-              </div>
-            ) : null}
-
             {/* Featured Story */}
             {featuredNews && (
               <article className="mb-8 pb-6 border-b border-subtleGray">
-                <Link href={`/news/${featuredNews.slug || featuredNews._id || featuredNews.id || ''}`} className="block group">
+                <Link href={`/news/${featuredNews._id || featuredNews.id || featuredNews.slug || ''}`} className="block group">
                   <div className="mb-4 rounded-lg overflow-hidden">
                     <img
                       src={featuredNews.featuredImage || featuredNews.image}
@@ -195,7 +184,7 @@ const CategoryPage = ({ categoryId: propCategoryId }) => {
                 {otherNews.map((news) => (
                   <Link
                     key={news.id || news._id}
-                    href={`/news/${news.slug || news._id || news.id || ''}`}
+                    href={`/news/${news._id || news.id || news.slug || ''}`}
                     className="group bg-cleanWhite rounded-lg border border-subtleGray/70 overflow-hidden hover:shadow-md transition-shadow"
                   >
                     <div className="mb-3">

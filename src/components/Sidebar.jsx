@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import newsData from '../data/newsData.json';
 import { apiFetch, getLatestArticles, getMostReadArticles, getPopularArticles } from '../utils/api';
 
 const Sidebar = ({ type = 'left' }) => {
@@ -50,9 +51,14 @@ const Sidebar = ({ type = 'left' }) => {
           const articles = await getMostReadArticles(5);
           if (articles && Array.isArray(articles) && articles.length > 0) {
             setMostPopular(articles);
+          } else {
+            // Fallback to dummy data
+            setMostPopular(newsData.latestNews.slice(0, 5));
           }
         } catch (error) {
           console.warn('Error fetching most popular articles:', error);
+          // Fallback to dummy data
+          setMostPopular(newsData.latestNews.slice(0, 5));
         }
       };
       fetchMostPopular();
@@ -68,15 +74,26 @@ const Sidebar = ({ type = 'left' }) => {
           const latest = await getLatestArticles(3);
           if (latest && Array.isArray(latest) && latest.length > 0) {
             setLatestNews(latest.slice(0, 3));
+          } else {
+            // Fallback to dummy data
+            setLatestNews(newsData.latestNews.slice(0, 3));
           }
 
           // Popular - use getPopularArticles (recent popular articles from last 7 days)
           const popular = await getPopularArticles(5);
           if (popular && Array.isArray(popular) && popular.length > 0) {
             setPopularNews(popular);
+          } else {
+            // Fallback to dummy data
+            const allNews = [...newsData.latestNews, ...newsData.categories.flatMap(cat => cat.news)];
+            setPopularNews(allNews.slice(0, 5));
           }
         } catch (error) {
           console.warn('Error fetching right sidebar data:', error);
+          // Fallback to dummy data
+          setLatestNews(newsData.latestNews.slice(0, 3));
+          const allNews = [...newsData.latestNews, ...newsData.categories.flatMap(cat => cat.news)];
+          setPopularNews(allNews.slice(0, 5));
         }
       };
       fetchRightSidebarData();
@@ -152,7 +169,7 @@ const Sidebar = ({ type = 'left' }) => {
                 return (
                   <Link
                     key={newsId || index}
-                    href={`/news/${newsSlug || ''}`}
+                    href={`/news/${newsId || newsSlug || ''}`}
                     className="flex gap-2 sm:gap-3 group hover:bg-subtleGray p-2 rounded transition-colors"
                   >
                     <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-subtleGray rounded overflow-hidden">
@@ -248,7 +265,7 @@ const Sidebar = ({ type = 'left' }) => {
                 <div key={newsId || index} className="relative pl-5 sm:pl-6">
                   <div className="absolute left-0 top-1 w-3 h-3 sm:w-4 sm:h-4 bg-newsRed rounded-full border-2 border-white shadow-sm"></div>
                   <Link
-                    href={`/news/${newsSlug || ''}`}
+                    href={`/news/${newsId || newsSlug || ''}`}
                     className="block group hover:bg-subtleGray/50 p-1.5 sm:p-2 rounded-lg transition-colors"
                   >
                     <p className="text-[10px] sm:text-xs text-metaGray mb-1">

@@ -6,11 +6,11 @@ import { FaWhatsapp, FaTwitter, FaFacebook, FaShareAlt } from 'react-icons/fa';
 const ShareButtons = ({ title, description, image, url }) => {
 
   // Use frontend URL for sharing (cleaner, better branding)
-  const frontendBase = 'https://navmanchnews.com';
+  const frontendBase = typeof window !== 'undefined' ? window.location.origin : 'https://navmanchnews.com';
   
   // Helper function to ensure frontend URL
   const getFrontendUrl = (inputUrl) => {
-    if (!inputUrl) return typeof window !== 'undefined' ? window.location.href : '';
+    if (!inputUrl) return window.location.href;
     
     try {
       const urlObj = new URL(inputUrl);
@@ -40,9 +40,29 @@ const ShareButtons = ({ title, description, image, url }) => {
   };
 
   // Get current page URL if not provided, and ensure it's frontend URL
-  const inputUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
-  const shareUrl = getFrontendUrl(inputUrl);
-  const shareTitle = title || (typeof window !== 'undefined' ? document.title : '');
+  const inputUrl = url || window.location.href;
+  // Ensure we always share the FRONTEND domain (navmanchnews.com)
+  // Backend/social-preview HTML is used transparently via the proxy in Frontend/server.js
+  // for crawlers, so users (and cards) always see navmanchnews.com links.
+  let shareUrl = getFrontendUrl(inputUrl);
+  
+  // Add sharing parameters for news and epaper links:
+  // - shared=true : allows free view for epaper routes
+  // - v=2         : simple cache-busting/version so crawlers re-fetch updated OG tags
+  try {
+    const urlObj = new URL(shareUrl);
+    const path = urlObj.pathname || '';
+
+    if (path.startsWith('/epaper/') || path.startsWith('/news/')) {
+    urlObj.searchParams.set('shared', 'true');
+      // Use timestamp-based cache-busting for more aggressive cache invalidation
+      urlObj.searchParams.set('v', Date.now().toString().slice(-6)); // Last 6 digits of timestamp
+    shareUrl = urlObj.toString();
+    }
+  } catch (e) {
+    // Ignore parsing errors
+  }
+  const shareTitle = title || document.title;
   const shareDescription = description || '';
   const shareImage = image || '';
 
@@ -50,11 +70,14 @@ const ShareButtons = ({ title, description, image, url }) => {
   const shareWhatsApp = () => {
     // WhatsApp generates preview cards from Open Graph meta tags
     // The URL must be on its own line for WhatsApp to fetch and display preview
-    // Format: Title on first line, description on second, URL on third line
-    // WhatsApp will automatically fetch the page and show preview card with image
-    const message = shareDescription 
-      ? `${shareTitle}\n\n${shareDescription}\n\n${shareUrl}`
-      : `${shareTitle}\n\n${shareUrl}`;
+    // Format (simplified as per requirement):
+    // - First line: title
+    // - Blank line
+    // - Last line: URL (used by WhatsApp to fetch preview card)
+    //
+    // NOTE: We intentionally do NOT include description in the prefilled text
+    // to keep the message short and consistent across news, epaper, and sections.
+    const message = `${shareTitle}\n\n${shareUrl}`;
     
     // Use WhatsApp share API - this triggers preview card generation
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -95,7 +118,6 @@ const ShareButtons = ({ title, description, image, url }) => {
         title="WhatsApp वर शेअर करा"
       >
         <FaWhatsapp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="font-semibold text-xs sm:text-sm hidden sm:inline">WhatsApp</span>
       </button>
 
       {/* Facebook Share */}
@@ -106,7 +128,6 @@ const ShareButtons = ({ title, description, image, url }) => {
         title="Facebook वर शेअर करा"
       >
         <FaFacebook className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="font-semibold text-xs sm:text-sm hidden sm:inline">Facebook</span>
       </button>
 
       {/* Twitter Share */}
@@ -117,7 +138,6 @@ const ShareButtons = ({ title, description, image, url }) => {
         title="Twitter वर शेअर करा"
       >
         <FaTwitter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="font-semibold text-xs sm:text-sm hidden sm:inline">Twitter</span>
       </button>
 
       {/* Copy Link */}
@@ -128,7 +148,6 @@ const ShareButtons = ({ title, description, image, url }) => {
         title="लिंक कॉपी करा"
       >
         <FaShareAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="font-semibold text-xs sm:text-sm hidden sm:inline">कॉपी</span>
       </button>
     </div>
   );

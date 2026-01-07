@@ -5,13 +5,7 @@ export const metadata = {
   description: 'नव मंच वर प्रकाशित लेख वाचा. Opinion & Features articles on Nav Manch.',
 };
 
-export default function ArticlesPage() {
+export default function ArticleDetailPage() {
   return <Articles />;
 }
-
-
-
-
-
-
 

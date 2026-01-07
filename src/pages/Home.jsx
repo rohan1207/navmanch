@@ -67,9 +67,9 @@ const HorizontalImageAds = () => {
 
   return (
     <section className="mb-10">
-      {ads.map((ad, index) => (
+      {ads.map((ad) => (
         <div 
-          key={`horizontal-ad-${ad._id || index}`} 
+          key={ad._id} 
           className="bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70 cursor-pointer hover:shadow-md transition-all duration-300 group mb-4"
           onClick={() => handleAdClick(ad._id, ad.link)}
         >
@@ -143,65 +143,31 @@ const Home = () => {
         const cats = catsResult.status === 'fulfilled' ? catsResult.value : null;
         const shortsData = shortsResult.status === 'fulfilled' ? shortsResult.value : null;
 
-        // Log what we received
-        console.log('📊 Home data loaded:', {
-          featured: featured ? `${featured.length} items` : 'null',
-          latest: latest ? `${latest.length} items` : 'null',
-          categories: cats ? `${cats.length} items` : 'null',
-          shorts: shortsData ? `${shortsData.length} items` : 'null',
-          featuredError: featuredResult.status === 'rejected' ? featuredResult.reason?.message : null,
-          latestError: latestResult.status === 'rejected' ? latestResult.reason?.message : null
-        });
-
         // Set featured news immediately - only use API data if available
-        // IMPORTANT: Only use fallback if API calls FAILED (rejected), not if they returned empty arrays
-        const featuredFailed = featuredResult.status === 'rejected';
-        const latestFailed = latestResult.status === 'rejected';
-        
-        if (featuredFailed && latestFailed) {
-          // Both API calls failed - use fallback
-          console.error('❌ Both featured and latest articles API failed');
-          console.error('Featured error:', featuredResult.reason);
-          console.error('Latest error:', latestResult.reason);
-          console.warn('⚠️ Using fallback JSON data');
+        if (featured && featured.length > 0) {
+          setFeaturedNews(featured[0]);
+          if (latest && latest.length > 1) {
+            setOtherNews(latest.slice(1, 6));
+          }
+          // Show content immediately, don't wait for everything
+          setLoading(false);
+        } else if (latest && latest.length > 0) {
+          // Use latest as featured if featured failed
+          setFeaturedNews(latest[0]);
+          setOtherNews(latest.slice(1, 6));
+          // Show content immediately
+          setLoading(false);
+        } else {
+          // Only use fallback if API completely failed
+          console.warn('API failed, using fallback data');
           const fallbackFeatured = newsData.latestNews[0];
           setFeaturedNews(fallbackFeatured);
           setOtherNews(newsData.latestNews.slice(1, 6));
           setLoading(false);
-        } else if (featured && Array.isArray(featured) && featured.length > 0) {
-          console.log('✅ Using featured articles from API');
-          setFeaturedNews(featured[0]);
-          if (latest && Array.isArray(latest) && latest.length > 1) {
-            setOtherNews(latest.slice(1, 6));
-          }
-          setLoading(false);
-        } else if (latest && Array.isArray(latest) && latest.length > 0) {
-          console.log('✅ Using latest articles from API as featured');
-          setFeaturedNews(latest[0]);
-          setOtherNews(latest.slice(1, 6));
-          setLoading(false);
-        } else {
-          // API calls succeeded but returned empty arrays - this is valid (no data yet)
-          console.log('ℹ️ API calls succeeded but returned empty arrays - no data available yet');
-          setFeaturedNews(null);
-          setOtherNews([]);
-          setLoading(false);
         }
 
         // Set categories - only use API data if available
-        const catsFailed = catsResult.status === 'rejected';
-        
-        if (catsFailed) {
-          // API call failed - use fallback
-          console.error('❌ Categories API failed:', catsResult.reason);
-          console.warn('⚠️ Using fallback categories from JSON');
-          setAllCategories(newsData.categories);
-          const filteredCats = primaryCategoryIds
-            .map(id => newsData.categories.find(cat => cat.id === id))
-            .filter(cat => cat !== undefined);
-          setCategories(filteredCats);
-        } else if (cats && Array.isArray(cats) && cats.length > 0) {
-          console.log('✅ Using categories from API:', cats.length);
+        if (cats && cats.length > 0) {
           setAllCategories(cats);
           // Filter categories to match Navigation menu
           // Try to match by nameEn (slug) or name first, then by id
@@ -238,27 +204,22 @@ const Home = () => {
               return found;
             })
             .filter(cat => cat !== undefined);
-          console.log('✅ Filtered categories:', filteredCats.length);
           setCategories(filteredCats);
         } else {
-          // API call succeeded but returned empty array - valid, just no categories yet
-          console.log('ℹ️ Categories API returned empty array - no categories available yet');
-          setAllCategories([]);
-          setCategories([]);
+          // Only use fallback if API completely failed
+          console.warn('Categories API failed, using fallback');
+          setAllCategories(newsData.categories);
+          const filteredCats = primaryCategoryIds
+            .map(id => newsData.categories.find(cat => cat.id === id))
+            .filter(cat => cat !== undefined);
+          setCategories(filteredCats);
         }
 
-        // Set shorts - only use fallback if API failed
-        const shortsFailed = shortsResult.status === 'rejected';
-        if (shortsFailed) {
-          console.error('❌ Shorts API failed:', shortsResult.reason);
-          console.warn('⚠️ Using fallback shorts from JSON');
-          setShorts(newsData.shorts || []);
-        } else if (shortsData && Array.isArray(shortsData) && shortsData.length > 0) {
-          console.log('✅ Using shorts from API:', shortsData.length);
+        // Set shorts
+        if (shortsData && shortsData.length > 0) {
           setShorts(shortsData);
         } else {
-          console.log('ℹ️ Shorts API returned empty array - no shorts available yet');
-          setShorts([]);
+          setShorts(newsData.shorts || []);
         }
 
         // Fetch horizontal video ads in background (non-blocking, no errors)
@@ -317,17 +278,8 @@ const Home = () => {
               }
             });
             // Update popular articles if we got new ones
-            // Deduplicate by _id or id to avoid duplicate keys
             if (articles.length > 0) {
-              const combined = [...allArticles, ...articles];
-              const uniqueArticles = combined.filter((article, index, self) => 
-                index === self.findIndex(a => 
-                  (a._id && a._id === article._id) || 
-                  (a.id && a.id === article.id) ||
-                  (!a._id && !a.id && index === self.findIndex(b => b === article))
-                )
-              );
-              setPopularArticles(uniqueArticles.slice(0, 10));
+              setPopularArticles([...allArticles, ...articles].slice(0, 10));
             }
           }).catch(() => {
             // Silently fail - keep initial popular articles
@@ -458,7 +410,7 @@ const Home = () => {
             {/* Featured Article - Large Hero Section */}
             {featuredNews && (
               <article className="mb-8 bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70">
-                <Link href={`/news/${featuredNews.slug || featuredNews._id || featuredNews.id || ''}`} className="block group">
+                <Link href={`/news/${featuredNews._id || featuredNews.id || featuredNews.slug || ''}`} className="block group">
                   <div className="relative overflow-hidden">
                     <img
                       src={featuredNews.featuredImage || featuredNews.image}
@@ -519,10 +471,10 @@ const Home = () => {
               </div>
               {/* First Row - 2 Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-                {otherNews.slice(0, 2).map((news, index) => (
+                {otherNews.slice(0, 2).map((news) => (
                   <Link
-                    key={`other-${news._id || news.id || index}`}
-                    href={`/news/${news.slug || news._id || news.id || ''}`}
+                    key={news.id || news._id}
+                    href={`/news/${news._id || news.id || news.slug || ''}`}
                     className="group bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70 hover:shadow-md transition-all duration-300"
                   >
                     <div className="relative overflow-hidden">
@@ -561,10 +513,10 @@ const Home = () => {
               </div>
               {/* Second Row - 3 Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {otherNews.slice(2, 5).map((news, index) => (
+                {otherNews.slice(2, 5).map((news) => (
                   <Link
-                    key={`other-${news._id || news.id || index + 2}`}
-                    href={`/news/${news.slug || news._id || news.id || ''}`}
+                    key={news.id || news._id}
+                    href={`/news/${news._id || news.id || news.slug || ''}`}
                     className="group bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70 hover:shadow-md transition-all duration-300"
                   >
                     <div className="relative overflow-hidden">
@@ -606,9 +558,9 @@ const Home = () => {
             {/* Horizontal Video Ad Section */}
             {horizontalAds.length > 0 && (
               <section className="mb-10">
-                {horizontalAds.map((ad, index) => (
+                {horizontalAds.map((ad) => (
                   <div 
-                    key={`horizontal-video-ad-${ad._id || index}`} 
+                    key={ad._id} 
                     className="bg-cleanWhite rounded-lg overflow-hidden shadow-sm mb-4 cursor-pointer hover:opacity-95 transition-opacity"
                     onClick={() => {
                       if (ad.link) {
@@ -668,9 +620,9 @@ const Home = () => {
                   </Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                  {shorts.slice(0, 5).map((short, index) => (
+                  {shorts.slice(0, 5).map((short) => (
                     <div
-                      key={`short-${short._id || short.id || short.videoId || index}`}
+                      key={short._id || short.id}
                       className="group relative bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70 hover:shadow-md transition-all duration-300"
                     >
                       <div className="relative aspect-[9/16] overflow-hidden bg-black">
@@ -715,7 +667,7 @@ const Home = () => {
                 {category.news && category.news[0] && (
                   <div className="mb-6">
                     <Link
-                      href={`/news/${category.news[0].slug || category.news[0]._id || category.news[0].id || ''}`}
+                      href={`/news/${category.news[0]._id || category.news[0].id || category.news[0].slug || ''}`}
                       className="group block bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70 hover:shadow-md transition-all duration-300"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
@@ -752,10 +704,10 @@ const Home = () => {
                 {/* Other Articles Grid */}
                 {category.news && category.news.length > 1 && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {category.news.slice(1, 4).map((news, index) => (
+                    {category.news.slice(1, 4).map((news) => (
                       <Link
-                        key={`category-${category._id || category.id}-news-${news._id || news.id || index}`}
-                        href={`/news/${news.slug || news._id || news.id || ''}`}
+                        key={news.id || news._id}
+                        href={`/news/${news._id || news.id || news.slug || ''}`}
                         className="group bg-cleanWhite rounded-lg overflow-hidden shadow-sm border border-subtleGray/70 hover:shadow-md transition-all duration-300"
                       >
                         <div className="relative overflow-hidden">
@@ -792,8 +744,8 @@ const Home = () => {
               <div className="space-y-4">
                 {popularArticles.map((article, index) => (
                   <Link
-                    key={`popular-${article._id || article.id || index}`}
-                    href={`/news/${article.slug || article._id || article.id || ''}`}
+                    key={article.id || article._id}
+                    href={`/news/${article._id || article.id || article.slug || ''}`}
                     className="flex items-start gap-4 group hover:bg-subtleGray/50 p-3 rounded-lg transition-colors"
                   >
                     <div className="flex-shrink-0 w-8 h-8 bg-newsRed text-cleanWhite rounded-full flex items-center justify-center font-bold text-sm">

@@ -1,12 +1,6 @@
 import './globals.css';
 import { HeaderProvider } from '@/src/context/HeaderContext';
-import Header from '@/src/components/Header';
-import BreakingNewsTicker from '@/src/components/BreakingNewsTicker';
-import Navigation from '@/src/components/Navigation';
-import ContactRibbon from '@/src/components/ContactRibbon';
-import Footer from '@/src/components/Footer';
-import MainContent from '@/src/components/MainContent';
-import ScrollToTop from '@/src/components/ScrollToTop';
+import ConditionalLayout from '@/src/components/ConditionalLayout';
 import Script from 'next/script';
 
 export const viewport = {
@@ -90,17 +84,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <HeaderProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <BreakingNewsTicker />
-            <Navigation />
-            <MainContent>
-              {children}
-            </MainContent>
-            <ContactRibbon />
-            <Footer />
-            <ScrollToTop />
-          </div>
+          <ConditionalLayout>
+            {children}
+          </ConditionalLayout>
         </HeaderProvider>
       </body>
     </html>

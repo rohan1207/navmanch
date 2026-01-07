@@ -1,31 +1,50 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import SubscribePopup from './SubscribePopup';
 import { useHeader } from '../context/HeaderContext';
 import { FaEye, FaChartLine } from 'react-icons/fa';
-import { isSubscribed, getSubscriberInitial, getSubscription } from '../utils/subscription';
+import { isSubscribedSync, isSubscribed, getSubscriberInitial, getSubscription } from '../utils/subscription';
+import { getStats, getStatsSync, initStats } from '../utils/stats';
 
 const Header = () => {
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
   const [subscription, setSubscription] = useState(null);
-  const [scrollCount, setScrollCount] = useState(0);
   const { isHeaderVisible, headerRef } = useHeader();
-  const [stats, setStats] = useState({
-    totalVisits: 0,
-    visitsToday: 0,
-    totalHits: 0,
-    hitsToday: 0
-  });
-
-  // Target values for animation
-  const targetStats = {
+  const location = usePathname();
+  // Initialize stats on component mount
+  const [stats, setStats] = useState(() => {
+    // Initialize stats from localStorage cache (synchronous for initial render)
+    // We'll fetch from API in useEffect
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('navmanch_stats');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    return {
     totalVisits: 120,
     visitsToday: 85,
     totalHits: 250,
-    hitsToday: 180
-  };
+      hitsToday: 180,
+      lastVisitDate: new Date().toISOString().split('T')[0]
+    };
+  });
+
+  const previousStatsRef = useRef(stats);
+  const isAnimatingRef = useRef(false);
+
+  // Initialize and increment stats on mount
+  useEffect(() => {
+    // Increment stats on page load
+    initStats();
+  }, []);
   
   const currentDate = new Date().toLocaleDateString('mr-IN', {
     day: 'numeric',
@@ -55,12 +74,24 @@ const Header = () => {
 
   // Scroll detection for popup
   useEffect(() => {
-    if (isSubscribed()) return; // Don't show if already subscribed
+    // Check if it's a shared epaper link - allow reading without subscription
+    const isSharedLink = typeof window !== 'undefined' && 
+                         (window.location.search.includes('shared=true') || 
+                          location?.includes('/epaper/'));
+    
+    // Don't show popup if already subscribed or if it's a shared link
+    if (isSubscribedSync() || isSharedLink) return;
     
     let scrollCount = 0;
     let lastScrollTop = 0;
     
     const handleScroll = () => {
+      // Check again if subscribed (in case user subscribed while scrolling)
+      if (isSubscribedSync()) {
+        window.removeEventListener('scroll', handleScroll);
+        return;
+      }
+      
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       
       // Detect actual scroll (not just page load)
@@ -68,7 +99,7 @@ const Header = () => {
         scrollCount++;
         lastScrollTop = scrollTop;
         
-        if (scrollCount >= 2 && !isSubscribed() && !isSubscribeOpen) {
+        if (scrollCount >= 2 && !isSubscribedSync() && !isSubscribeOpen) {
           setIsSubscribeOpen(true);
           window.removeEventListener('scroll', handleScroll);
         }
@@ -79,17 +110,37 @@ const Header = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [isSubscribeOpen]);
+  }, [isSubscribeOpen, location, subscription]);
 
-  // Animate stats from 0 to target values with 3 second delay
+  // Load stats and animate on updates
   useEffect(() => {
-    const delay = 3000; // 3 seconds delay
-    const duration = 1500; // 1.5 seconds animation duration
+    const delay = 500; // Small delay before animation
+    const duration = 1000; // 1 second animation duration
+    let timeoutId;
     
-    // Wait 3 seconds before starting animation
-    const timeoutId = setTimeout(() => {
+    const loadAndAnimateStats = async () => {
+      if (isAnimatingRef.current) return; // Don't start new animation while one is running
+      
+      // Fetch from backend API (global stats)
+      const targetValues = await getStats();
+      const startValues = { ...previousStatsRef.current };
+      
+      // Only animate if values changed
+      const hasChanged = 
+        startValues.totalVisits !== targetValues.totalVisits ||
+        startValues.visitsToday !== targetValues.visitsToday ||
+        startValues.totalHits !== targetValues.totalHits ||
+        startValues.hitsToday !== targetValues.hitsToday;
+      
+      if (!hasChanged) {
+        previousStatsRef.current = targetValues;
+        return;
+      }
+      
+      isAnimatingRef.current = true;
+      
+      timeoutId = setTimeout(() => {
       const startTime = Date.now();
-      const startValues = { ...stats };
 
       const animate = () => {
         const elapsed = Date.now() - startTime;
@@ -99,26 +150,53 @@ const Header = () => {
         const easeOut = 1 - Math.pow(1 - progress, 3);
 
         setStats({
-          totalVisits: Math.floor(startValues.totalVisits + (targetStats.totalVisits - startValues.totalVisits) * easeOut),
-          visitsToday: Math.floor(startValues.visitsToday + (targetStats.visitsToday - startValues.visitsToday) * easeOut),
-          totalHits: Math.floor(startValues.totalHits + (targetStats.totalHits - startValues.totalHits) * easeOut),
-          hitsToday: Math.floor(startValues.hitsToday + (targetStats.hitsToday - startValues.hitsToday) * easeOut)
+            totalVisits: Math.floor(startValues.totalVisits + (targetValues.totalVisits - startValues.totalVisits) * easeOut),
+            visitsToday: Math.floor(startValues.visitsToday + (targetValues.visitsToday - startValues.visitsToday) * easeOut),
+            totalHits: Math.floor(startValues.totalHits + (targetValues.totalHits - startValues.totalHits) * easeOut),
+            hitsToday: Math.floor(startValues.hitsToday + (targetValues.hitsToday - startValues.hitsToday) * easeOut)
         });
 
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          // Ensure final values are exactly the target values
-          setStats({ ...targetStats });
+            // Ensure final values match target
+            setStats(targetValues);
+            previousStatsRef.current = targetValues;
+            isAnimatingRef.current = false;
         }
       };
 
       requestAnimationFrame(animate);
     }, delay);
-
-    // Cleanup timeout on unmount
-    return () => clearTimeout(timeoutId);
-  }, []); // Run only once on mount
+    };
+    
+    // Initial load with animation
+    loadAndAnimateStats();
+    
+    // Listen for stats updates
+    const handleStatsUpdate = () => {
+      loadAndAnimateStats();
+    };
+    
+    const handleStatsRefresh = () => {
+      loadAndAnimateStats();
+    };
+    
+    window.addEventListener('statsUpdated', handleStatsUpdate);
+    window.addEventListener('statsRefresh', handleStatsRefresh);
+    
+    // Also check for updates periodically (every 5 seconds to get global stats)
+    const intervalId = setInterval(() => {
+      loadAndAnimateStats();
+    }, 5000);
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener('statsUpdated', handleStatsUpdate);
+      window.removeEventListener('statsRefresh', handleStatsRefresh);
+      clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <>
@@ -153,7 +231,7 @@ const Header = () => {
 
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <Link
-                href="/epaper2"
+                href="/epaper"
                 className="px-2.5 py-1.5 rounded-full bg-editorialBlue text-cleanWhite text-[10px] sm:text-xs font-semibold tracking-wide hover:bg-editorialBlue/90 transition-all duration-300 shadow-sm hover:shadow-md whitespace-nowrap"
               >
                 ई-पेपर
@@ -197,7 +275,7 @@ const Header = () => {
             {/* Right: E-Paper and Subscribe */}
             <div className="flex items-center space-x-3">
               <Link
-                href="/epaper2"
+                href="/epaper"
                 className="bg-editorialBlue text-cleanWhite px-5 py-2 text-sm font-semibold uppercase tracking-wider hover:bg-editorialBlue/80 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 rounded-full"
               >
                 ई-पेपर
@@ -296,17 +374,30 @@ const Header = () => {
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
                   <FaEye className="text-newsRed text-[10px]" />
                   <span className="text-[9px] text-metaGray">Visit:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">{stats.visitsToday.toLocaleString('en-IN')}</span>
+                  <span className="text-[9px] font-bold text-deepCharcoal">{stats.visitsToday?.toLocaleString('en-IN') || 0}</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
                   <FaChartLine className="text-newsRed text-[10px]" />
                   <span className="text-[9px] text-metaGray">Total:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">{(stats.totalVisits / 1000).toFixed(0)}K</span>
+                  <span className="text-[9px] font-bold text-deepCharcoal">
+                    {stats.totalVisits && stats.totalVisits >= 1000 
+                      ? `${(stats.totalVisits / 1000).toFixed(0)}K` 
+                      : (stats.totalVisits?.toLocaleString('en-IN') || 0)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
                   <FaEye className="text-editorialBlue text-[10px]" />
                   <span className="text-[9px] text-metaGray">Hits:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">{stats.hitsToday.toLocaleString('en-IN')}</span>
+                  <span className="text-[9px] font-bold text-deepCharcoal">{stats.hitsToday?.toLocaleString('en-IN') || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
+                  <FaChartLine className="text-editorialBlue text-[10px]" />
+                  <span className="text-[9px] text-metaGray">Total:</span>
+                  <span className="text-[9px] font-bold text-deepCharcoal">
+                    {stats.totalHits && stats.totalHits >= 1000 
+                      ? `${(stats.totalHits / 1000).toFixed(0)}K` 
+                      : (stats.totalHits?.toLocaleString('en-IN') || 0)}
+                  </span>
                 </div>
               </div>
             </div>

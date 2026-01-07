@@ -44,15 +44,15 @@ const Shorts = () => {
       <section className="container mx-auto px-4 py-8">
         {shorts.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-metaGray text-lg">अजून कोणतेही शॉर्ट उपलब्ध नाहीत</p>
+            <p className="text-gray-500 text-lg">अजून कोणतेही शॉर्ट उपलब्ध नाहीत</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {shorts.map((short) => (
-              <div
+            <div
                 key={short._id || short.id}
-                className="bg-cleanWhite rounded-lg border border-subtleGray/80 overflow-hidden hover:shadow-md transition-shadow duration-300"
-              >
+              className="bg-cleanWhite rounded-lg border border-subtleGray/80 overflow-hidden hover:shadow-md transition-shadow duration-300"
+            >
                 <div className="relative aspect-[9/16] bg-black">
                   <iframe
                     src={`https://www.youtube.com/embed/${short.videoId || short.id}`}
@@ -62,10 +62,10 @@ const Shorts = () => {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   ></iframe>
-                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
         )}
       </section>
     </div>
@@ -73,6 +73,8 @@ const Shorts = () => {
 };
 
 export default Shorts;
+
+
 
 
 

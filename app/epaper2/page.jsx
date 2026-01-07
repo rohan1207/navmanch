@@ -1,11 +1,11 @@
 import { getEpapers } from '@/src/utils/api';
-import EPaper2 from '@/src/pages/EPaper2';
+import epaper from '@/src/pages/epaper';
 
 export async function generateMetadata() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
     ? `https://${process.env.VERCEL_URL}` 
     : 'https://navmanchnews.com';
-  const epaper2Url = `${baseUrl}/epaper2`;
+  const epaperUrl = `${baseUrl}/epaper`;
   
   // Try to get latest epaper for better image
   let latestEpaperImage = '/logo1.png';
@@ -38,7 +38,7 @@ export async function generateMetadata() {
       title: 'नव मंच ई-पेपर | Nav Manch E-Paper',
       description: 'साप्ताहिक मराठी वृत्तपत्राचे डिजिटल आवृत्ती. Weekly Marathi newspaper digital edition.',
       images: [latestEpaperImage],
-      url: epaper2Url,
+      url: epaperUrl,
       type: 'website',
       locale: 'mr_IN',
       siteName: 'नव मंच - Nav Manch',
@@ -50,7 +50,7 @@ export async function generateMetadata() {
       images: [latestEpaperImage],
     },
     alternates: {
-      canonical: epaper2Url,
+      canonical: epaperUrl,
     },
     other: {
       'fb:app_id': process.env.NEXT_PUBLIC_FB_APP_ID || '',
@@ -58,7 +58,7 @@ export async function generateMetadata() {
   };
 }
 
-export default function Epaper2Page() {
-  return <EPaper2 />;
+export default function epaperPage() {
+  return <epaper />;
 }
 

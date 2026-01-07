@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaUser, FaEnvelope, FaPhone, FaCheckCircle } from 'react-icons/fa';
-import { setSubscription, isSubscribed, checkSubscriberExists, getSubscriberName } from '../utils/subscription';
+import { setSubscription, isSubscribedSync, isSubscribed, checkSubscriberExists, getSubscriberName } from '../utils/subscription';
 
 const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
   const [formData, setFormData] = useState({
@@ -13,8 +13,6 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isExistingUser, setIsExistingUser] = useState(false);
-  const [checkingUser, setCheckingUser] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
 
   // Prevent body scroll when popup is open
@@ -32,9 +30,11 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
   // Check if already subscribed when popup opens
   useEffect(() => {
     if (isOpen) {
-      const subscribed = isSubscribed();
-      if (subscribed) {
-        // User is already subscribed - show welcome back and auto-close
+      // First check localStorage (fast, synchronous)
+      const subscribedLocal = isSubscribedSync();
+      
+      if (subscribedLocal) {
+        // User is already subscribed locally - show welcome back and auto-close
         setShowWelcomeBack(true);
         const subscriberName = getSubscriberName();
         setFormData(prev => ({
@@ -50,12 +50,40 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         
         return () => clearTimeout(timer);
       } else {
+        // Check if we can get email/phone from localStorage to check backend
+        const stored = localStorage.getItem('navmanch_subscription');
+        if (stored) {
+          try {
+            const sub = JSON.parse(stored);
+            if (sub.email || sub.phone) {
+              // Check backend with stored email/phone
+              isSubscribed(sub.email, sub.phone).then(subscribed => {
+                if (subscribed) {
+                  setShowWelcomeBack(true);
+                  const subscriberName = getSubscriberName();
+                  setFormData(prev => ({
+                    ...prev,
+                    name: subscriberName || ''
+                  }));
+                  setTimeout(() => {
+                    setShowWelcomeBack(false);
+                    onClose();
+                  }, 2000);
+                }
+              }).catch(() => {
+                // Ignore errors, continue with form
+              });
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+        
         setShowWelcomeBack(false);
         // Reset form when opening for new subscription
         setFormData({ name: '', email: '', phone: '' });
         setErrors({});
         setIsSuccess(false);
-        setIsExistingUser(false);
       }
     } else {
       // Reset when popup closes
@@ -63,7 +91,6 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
       setErrors({});
       setIsSuccess(false);
       setShowWelcomeBack(false);
-      setIsExistingUser(false);
     }
   }, [isOpen, onClose]);
 
@@ -90,7 +117,7 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = async (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -103,8 +130,6 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         [name]: ''
       }));
     }
-
-    // Don't check for existing users while typing - let them submit and handle it on submit
   };
 
   const handleSubmit = async (e) => {

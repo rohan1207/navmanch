@@ -1,6 +1,51 @@
 import { getArticle } from '@/src/utils/api';
 import NewsDetail from '@/src/pages/NewsDetail';
 
+// Optimize Cloudinary image for instant share cards (matching backend optimizations)
+function optimizeImageForShare(imgUrl, baseUrl) {
+  if (!imgUrl || imgUrl.trim() === '') {
+    return `${baseUrl}/logo1.png`;
+  }
+  
+  let optimized = imgUrl.trim();
+  
+  // Ensure absolute HTTPS URL
+  if (!optimized.startsWith('http')) {
+    optimized = optimized.startsWith('/') 
+      ? `${baseUrl}${optimized}`
+      : `${baseUrl}/logo1.png`;
+  }
+  if (optimized.startsWith('http://')) {
+    optimized = optimized.replace('http://', 'https://');
+  }
+  
+  // Apply ultra-fast Cloudinary optimizations (600x315, q_60, f_jpg, fl_progressive, dpr_1, g_auto)
+  if (optimized.includes('cloudinary.com') && optimized.includes('/image/upload/')) {
+    const match = optimized.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
+    if (match) {
+      const base = match[1];
+      const rest = match[2];
+      
+      // Extract public_id (last segment, may have version)
+      const segments = rest.split('/');
+      let publicId = segments[segments.length - 1];
+      let version = '';
+      if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
+        version = segments[segments.length - 2];
+        publicId = segments[segments.length - 1];
+      }
+      
+      // Ultra-fast optimizations: 600x315, JPEG, quality 60, progressive, dpr_1, auto gravity
+      const transforms = 'w_600,h_315,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1';
+      optimized = version
+        ? `${base}${transforms}/${version}/${publicId}`
+        : `${base}${transforms}/${publicId}`;
+    }
+  }
+  
+  return optimized;
+}
+
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const baseUrl = 'https://navmanchnews.com';
@@ -11,62 +56,25 @@ export async function generateMetadata({ params }) {
     if (!article) {
       return {
         title: 'Article Not Found | नव मंच',
+        description: 'Article not found',
       };
     }
 
-    // Get image - prioritize featuredImage, then imageGallery, then first <img> from content.
-    // Fallback to logo ONLY if absolutely nothing else is available.
+    // Get image - prioritize featuredImage, then imageGallery, then first <img> from content
     let imageUrl = '';
     
-    // 1) Explicit featured image
     if (article.featuredImage && article.featuredImage.trim() !== '') {
       imageUrl = article.featuredImage.trim();
-    }
-    
-    // 2) First image from gallery
-    if ((!imageUrl || imageUrl === '') && article.imageGallery && article.imageGallery.length > 0) {
+    } else if (article.imageGallery && article.imageGallery.length > 0) {
       const firstImage = article.imageGallery.find(img => img && img.trim() !== '');
-      if (firstImage) {
-        imageUrl = firstImage.trim();
-      }
-    }
-
-    // 3) First <img src="..."> inside HTML content (many old articles only have inline images)
-    if ((!imageUrl || imageUrl === '') && article.content) {
-      try {
-        const match = String(article.content).match(/<img[^>]+src=["']([^"']+)["']/i);
-        if (match && match[1]) {
-          imageUrl = match[1].trim();
-        }
-      } catch (e) {
-        console.error('Error extracting image from article content for metadata:', e);
-      }
+      if (firstImage) imageUrl = firstImage.trim();
+    } else if (article.content) {
+      const match = String(article.content).match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (match && match[1]) imageUrl = match[1].trim();
     }
     
-    // 4) Absolute last fallback: logo (so that share cards never break completely)
-    if (!imageUrl || imageUrl === '') {
-      imageUrl = `${baseUrl}/logo1.png`;
-    }
-    
-    // Optimize Cloudinary image for share cards (1200x630)
-    let optimizedImage = imageUrl;
-    if (imageUrl.includes('cloudinary.com') && imageUrl.includes('/image/upload/')) {
-      const uploadMatch = imageUrl.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
-      if (uploadMatch) {
-        const base = uploadMatch[1];
-        const rest = uploadMatch[2];
-        if (!rest.includes('w_') || !rest.includes('h_')) {
-          optimizedImage = `${base}w_1200,h_630,c_fill,q_auto,f_auto/${rest}`;
-        } else {
-          optimizedImage = imageUrl;
-        }
-      }
-    }
-
-    // Force HTTPS
-    if (optimizedImage.startsWith('http://')) {
-      optimizedImage = optimizedImage.replace('http://', 'https://');
-    }
+    // Optimize image for instant loading
+    const optimizedImage = optimizeImageForShare(imageUrl, baseUrl);
 
     // Get description
     const description = article.summary || 
@@ -74,9 +82,9 @@ export async function generateMetadata({ params }) {
       article.title || '';
 
     const articleUrl = `${baseUrl}/news/${id}`;
-    const siteName = 'नव मंच - Nav Manch';
 
     return {
+      metadataBase: new URL(baseUrl),
       title: `${article.title} | नव मंच`,
       description: description,
       openGraph: {
@@ -87,13 +95,14 @@ export async function generateMetadata({ params }) {
         images: [
           {
             url: optimizedImage,
-            width: 1200,
-            height: 630,
+            width: 600,
+            height: 315,
             alt: article.title,
           },
         ],
-        siteName: siteName,
+        siteName: 'नव मंच - Nav Manch',
         locale: 'mr_IN',
+        publishedTime: article.publishedAt || article.createdAt ? new Date(article.publishedAt || article.createdAt).toISOString() : undefined,
       },
       twitter: {
         card: 'summary_large_image',
@@ -109,16 +118,14 @@ export async function generateMetadata({ params }) {
     console.error('Error generating article metadata:', error);
     return {
       title: 'Article | नव मंच',
+      description: 'Article | नव मंच - मराठी वृत्तपत्र',
+      openGraph: {
+        images: [`${baseUrl}/logo1.png`],
+      },
     };
   }
 }
 
-export default async function NewsDetailPage({ params }) {
-  const { id } = await params;
-  return <NewsDetail articleId={id} />;
+export default function NewsDetailPage() {
+  return <NewsDetail />;
 }
-
-
-
-
-

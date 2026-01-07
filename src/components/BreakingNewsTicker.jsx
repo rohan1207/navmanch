@@ -57,11 +57,12 @@ const BreakingNewsTicker = () => {
               }
             }
 
+            const articleId = article._id || article.id;
             return {
-              id: article._id || article.id,
+              id: articleId,
               title: article.title,
               category: categoryName,
-              url: `/news/${article.slug || article._id || article.id}`
+              url: `/news/${articleId || article.slug || ''}`
             };
           });
 
@@ -132,11 +133,11 @@ const BreakingNewsTicker = () => {
         <div className="flex items-center h-11 sm:h-12 md:h-14">
           {/* Breaking News Label */}
           <div className="flex items-center gap-1.5 sm:gap-2 bg-red-800/90 px-2 sm:px-3 md:px-5 h-full flex-shrink-0 border-r border-red-700/50">
-            <FaFire className="text-cleanWhite text-xs sm:text-sm md:text-base animate-pulse flex-shrink-0" />
-            <span className="text-cleanWhite font-bold text-[10px] sm:text-xs md:text-sm uppercase tracking-wider whitespace-nowrap hidden sm:inline">
+            <FaFire className="text-cleanWhite text-sm sm:text-sm md:text-lg animate-pulse flex-shrink-0" />
+            <span className="text-cleanWhite font-bold text-[10px] sm:text-xs md:text-base uppercase tracking-wider whitespace-nowrap hidden sm:inline">
               न्यूज फ्लॅश
             </span>
-            <span className="text-cleanWhite font-bold text-[10px] uppercase tracking-wider whitespace-nowrap sm:hidden">
+            <span className="text-cleanWhite font-bold text-sm uppercase tracking-wider whitespace-nowrap sm:hidden">
               ताज्या
             </span>
           </div>
@@ -145,7 +146,7 @@ const BreakingNewsTicker = () => {
           <div className="flex-1 overflow-hidden relative h-full min-w-0">
             {loading ? (
               <div className="flex items-center justify-center h-full px-3 sm:px-6">
-                <span className="text-cleanWhite text-[10px] sm:text-xs md:text-sm animate-pulse">लोड होत आहे...</span>
+                <span className="text-cleanWhite text-sm sm:text-xs md:text-sm animate-pulse">लोड होत आहे...</span>
               </div>
             ) : breakingNews.length > 0 ? (
               <div 
@@ -162,12 +163,12 @@ const BreakingNewsTicker = () => {
                       className="flex items-center gap-1.5 sm:gap-2 md:gap-4 flex-1 group hover:opacity-90 transition-opacity min-w-0"
                     >
                       {/* News Title */}
-                      <span className="text-cleanWhite text-[10px] sm:text-xs md:text-sm font-semibold line-clamp-1 group-hover:underline flex-1 min-w-0 truncate">
+                      <span className="text-cleanWhite text-sm sm:text-xs md:text-base font-semibold line-clamp-1 group-hover:underline flex-1 min-w-0 truncate">
                         {news.title}
                       </span>
                       
                       {/* Category Badge - Hidden on very small screens */}
-                      <span className="bg-cleanWhite/20 backdrop-blur-sm text-cleanWhite px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] md:text-xs font-medium whitespace-nowrap flex-shrink-0 border border-cleanWhite/30 hidden min-[375px]:inline-block">
+                      <span className="bg-cleanWhite/20 backdrop-blur-sm text-cleanWhite px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-[10px] md:text-sm font-medium whitespace-nowrap flex-shrink-0 border border-cleanWhite/30 hidden min-[375px]:inline-block">
                         {news.category}
                       </span>
                     </Link>
@@ -176,7 +177,7 @@ const BreakingNewsTicker = () => {
               </div>
             ) : (
               <div className="flex items-center justify-center h-full px-3 sm:px-6">
-                <span className="text-cleanWhite text-[10px] sm:text-xs md:text-sm">कोणतीही बातम्या उपलब्ध नाहीत</span>
+                <span className="text-cleanWhite text-sm sm:text-xs md:text-sm">कोणतीही बातम्या उपलब्ध नाहीत</span>
               </div>
             )}
           </div>
