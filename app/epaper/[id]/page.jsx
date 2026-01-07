@@ -148,6 +148,8 @@ export async function generateMetadata({ params }) {
           width: 600,
           height: 800,
           alt: epaperTitle,
+          secureUrl: optimizedImage,
+          type: 'image/jpeg',
         },
       ],
       siteName: 'नव मंच - Nav Manch',
@@ -162,6 +164,13 @@ export async function generateMetadata({ params }) {
     },
     alternates: {
       canonical: finalEpaperUrl,
+    },
+    // CRITICAL: Add explicit meta tags for WhatsApp compatibility
+    other: {
+      'og:image:secure_url': optimizedImage,
+      'og:image:width': '600',
+      'og:image:height': '800',
+      'og:image:type': 'image/jpeg',
     },
   };
 }

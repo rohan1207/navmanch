@@ -117,6 +117,12 @@ export async function generateMetadata({ params }) {
     if (finalImageUrl.startsWith('http://')) {
       finalImageUrl = finalImageUrl.replace('http://', 'https://');
     }
+    
+    // DEBUG: Log image URLs for troubleshooting
+    console.log('[METADATA DEBUG] Article ID:', id);
+    console.log('[METADATA DEBUG] Original Image URL:', imageUrl);
+    console.log('[METADATA DEBUG] Final Image URL:', finalImageUrl);
+    console.log('[METADATA DEBUG] Base URL:', baseUrl);
 
     // Get description
     const description = article.summary || 
@@ -140,6 +146,8 @@ export async function generateMetadata({ params }) {
             width: 600,
             height: 315,
             alt: article.title,
+            secureUrl: finalImageUrl, // CRITICAL: WhatsApp requires this
+            type: 'image/jpeg', // CRITICAL: Explicit type
           },
         ],
         siteName: 'नव मंच - Nav Manch',
@@ -154,6 +162,13 @@ export async function generateMetadata({ params }) {
       },
       alternates: {
         canonical: articleUrl,
+      },
+      // CRITICAL: Add explicit meta tags for WhatsApp compatibility
+      other: {
+        'og:image:secure_url': finalImageUrl,
+        'og:image:width': '600',
+        'og:image:height': '315',
+        'og:image:type': 'image/jpeg',
       },
     };
   } catch (error) {
