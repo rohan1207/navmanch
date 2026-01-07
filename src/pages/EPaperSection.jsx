@@ -874,7 +874,7 @@ const EPaperSection = () => {
                 <img
                   src="/logo1.png"
                   alt="नव मंच"
-                  className="h-28 w-auto"
+                  className="h-32 w-auto"
                 />
               {/* Minimal bold black line below logo */}
               <div className="w-full h-0.5 bg-black mt-2"></div>

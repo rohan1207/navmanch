@@ -225,7 +225,7 @@ const Header = () => {
               <img
                 src="/logo1.png"
                 alt="नव मंच"
-                className="h-24 sm:h-28 w-auto"
+                className="h-28 sm:h-28 w-auto"
               />
             </Link>
 
