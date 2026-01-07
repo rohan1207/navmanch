@@ -84,7 +84,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <ContentProtection />
+        {/* <ContentProtection /> */}
         <HeaderProvider>
           <ConditionalLayout>
             {children}
