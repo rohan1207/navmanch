@@ -1,5 +1,5 @@
 import { getEpapers } from '@/src/utils/api';
-import epaper from '@/src/pages/epaper';
+import EPaper2 from '@/src/pages/EPaper2';
 
 export async function generateMetadata() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL 
@@ -58,7 +58,7 @@ export async function generateMetadata() {
   };
 }
 
-export default function epaperPage() {
-  return <epaper />;
+export default function EpaperPage() {
+  return <EPaper2 />;
 }
 
