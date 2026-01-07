@@ -279,14 +279,90 @@ h1, h2, h3, h4, h5, h6, p, span:not(.icon), a, li, button, input, textarea, sele
 
 .article-content table {
   @apply w-full border-collapse my-4;
+  /* Responsive table - allow horizontal scroll on mobile */
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+  .article-content table {
+    display: table;
+  }
 }
 
 .article-content table th,
 .article-content table td {
   @apply border border-subtleGray px-4 py-2;
+  /* Prevent text from breaking in table cells */
+  word-wrap: break-word;
+}
+
+/* Image in table cells - responsive */
+.article-content table td img,
+.article-content table th img {
+  @apply max-w-full h-auto rounded-lg;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Two-column layout: image + text */
+.article-content table tr td:first-child img {
+  width: 100%;
+  max-width: 100%;
 }
 
 .article-content table th {
   @apply bg-subtleGray font-bold text-deepCharcoal;
+}
+
+/* Responsive: Stack table cells on very small screens */
+@media (max-width: 480px) {
+  .article-content table,
+  .article-content thead,
+  .article-content tbody,
+  .article-content th,
+  .article-content td,
+  .article-content tr {
+    display: block;
+  }
+  
+  .article-content thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  
+  .article-content tr {
+    @apply border border-subtleGray mb-2;
+  }
+  
+  .article-content td {
+    @apply border-0 border-b border-subtleGray px-4 py-2;
+    position: relative;
+    padding-left: 50% !important;
+  }
+  
+  .article-content td:before {
+    content: attr(data-label) ": ";
+    position: absolute;
+    left: 6px;
+    width: 45%;
+    @apply font-bold text-deepCharcoal;
+  }
+  
+  /* For image+text tables, don't stack - keep side by side */
+  .article-content table.image-text-table {
+    display: table;
+  }
+  
+  .article-content table.image-text-table td {
+    display: table-cell;
+    padding-left: 1rem !important;
+  }
+  
+  .article-content table.image-text-table td:before {
+    display: none;
+  }
 }
 
