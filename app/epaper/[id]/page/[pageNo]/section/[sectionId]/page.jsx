@@ -21,29 +21,18 @@ function optimizeImageForShare(imgUrl, baseUrl, isCropped = false) {
   }
   
   // Apply ultra-fast Cloudinary optimizations
+  // IMPORTANT: Preserve full folder path; just inject transforms before it
   if (optimized.includes('cloudinary.com') && optimized.includes('/image/upload/')) {
     const match = optimized.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
     if (match) {
-      const base = match[1];
-      const rest = match[2];
+      const base = match[1];  // up to /image/upload/
+      const rest = match[2];  // version + folders + public_id
       
-      const segments = rest.split('/');
-      let publicId = segments[segments.length - 1];
-      let version = '';
-      if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-        version = segments[segments.length - 2];
-        publicId = segments[segments.length - 1];
-      }
-      
-      // For cropped sections, keep crop but optimize size/quality
-      // For regular images, use vertical format (600x800)
       const transforms = isCropped && optimized.includes('c_crop')
-        ? 'w_600,h_800,q_60,f_jpg,fl_progressive,dpr_1' // Keep existing crop, just optimize
-        : 'w_600,h_800,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1'; // Full vertical format
+        ? 'w_600,h_800,q_60,f_jpg,fl_progressive,dpr_1'
+        : 'w_600,h_800,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1';
       
-      optimized = version
-        ? `${base}${transforms}/${version}/${publicId}`
-        : `${base}${transforms}/${publicId}`;
+      optimized = `${base}${transforms}/${rest}`;
     }
   }
   
@@ -175,8 +164,8 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  // Get section image - use cropped if coordinates available, otherwise use existing croppedImage or page image
-  let imageUrl = section.croppedImage || section.image;
+  // Get section image - use cropped if available, otherwise section image
+  let imageUrl = section.croppedImage || section.image || '';
   
   // Generate cropped URL from coordinates if available
   if (page?.image && section.x !== undefined && section.y !== undefined && 
@@ -188,7 +177,7 @@ export async function generateMetadata({ params }) {
       imageUrl = page.image;
     }
   } else if (!imageUrl) {
-    imageUrl = page?.image || epaper.thumbnail;
+    imageUrl = page?.image || epaper.thumbnail || '';
   }
   
   // Optimize image for instant loading
@@ -203,6 +192,12 @@ export async function generateMetadata({ params }) {
   if (optimizedImage.startsWith('http://')) {
     optimizedImage = optimizedImage.replace('http://', 'https://');
   }
+
+  // DEBUG: Log image URLs for epaper section metadata
+  console.log('[SECTION METADATA] Epaper ID:', id, 'Page:', pageNo, 'Section:', sectionId);
+  console.log('[SECTION METADATA] Original imageUrl:', imageUrl);
+  console.log('[SECTION METADATA] OptimizedImage:', optimizedImage);
+  console.log('[SECTION METADATA] Base URL:', baseUrl);
 
   // Clean epaper title
   let epaperTitle = epaper.title || 'नव मंच';

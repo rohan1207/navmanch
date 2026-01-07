@@ -20,25 +20,17 @@ function optimizeImageForShare(imgUrl, baseUrl) {
   }
   
   // Apply ultra-fast Cloudinary optimizations for vertical cards (600x800)
+  // IMPORTANT: Preserve the full folder path (e.g. newspaper/epaper/1767/page-1.jpg)
   if (optimized.includes('cloudinary.com') && optimized.includes('/image/upload/')) {
     const match = optimized.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
     if (match) {
-      const base = match[1];
-      const rest = match[2];
-      
-      const segments = rest.split('/');
-      let publicId = segments[segments.length - 1];
-      let version = '';
-      if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-        version = segments[segments.length - 2];
-        publicId = segments[segments.length - 1];
-      }
+      const base = match[1];     // up to and including /image/upload/
+      const rest = match[2];     // everything AFTER /image/upload/ (version + folders + public_id)
       
       // Ultra-fast optimizations: 600x800 (vertical), JPEG, quality 60, progressive, dpr_1, auto gravity
       const transforms = 'w_600,h_800,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1';
-      optimized = version
-        ? `${base}${transforms}/${version}/${publicId}`
-        : `${base}${transforms}/${publicId}`;
+      // Insert transforms BEFORE the existing path, keep folders + version untouched
+      optimized = `${base}${transforms}/${rest}`;
     }
   }
   

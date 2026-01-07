@@ -21,25 +21,15 @@ function optimizeImageForShare(imgUrl, baseUrl) {
   }
   
   // Apply ultra-fast Cloudinary optimizations for vertical cards (600x800)
+  // IMPORTANT: Preserve the full folder path (e.g. newspaper/epaper/1767/page-1.jpg)
   if (optimized.includes('cloudinary.com') && optimized.includes('/image/upload/')) {
     const match = optimized.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
     if (match) {
-      const base = match[1];
-      const rest = match[2];
+      const base = match[1];   // up to and including /image/upload/
+      const rest = match[2];   // everything after (version + folders + public_id)
       
-      const segments = rest.split('/');
-      let publicId = segments[segments.length - 1];
-      let version = '';
-      if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-        version = segments[segments.length - 2];
-        publicId = segments[segments.length - 1];
-      }
-      
-      // Ultra-fast optimizations: 600x800 (vertical), JPEG, quality 60, progressive, dpr_1, auto gravity
       const transforms = 'w_600,h_800,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1';
-      optimized = version
-        ? `${base}${transforms}/${version}/${publicId}`
-        : `${base}${transforms}/${publicId}`;
+      optimized = `${base}${transforms}/${rest}`;
     }
   }
   
@@ -97,8 +87,8 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  // Get first page image
-  const imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
+  // Get first page image (prefer page image, then thumbnail)
+  const imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail || '';
   
   // Optimize image for instant loading
   let optimizedImage = optimizeImageForShare(imageUrl, baseUrl);
@@ -112,6 +102,12 @@ export async function generateMetadata({ params }) {
   if (optimizedImage.startsWith('http://')) {
     optimizedImage = optimizedImage.replace('http://', 'https://');
   }
+
+  // DEBUG: Log image URLs for epaper metadata
+  console.log('[EPAPER METADATA] ID:', id);
+  console.log('[EPAPER METADATA] Original imageUrl:', imageUrl);
+  console.log('[EPAPER METADATA] OptimizedImage:', optimizedImage);
+  console.log('[EPAPER METADATA] Base URL:', baseUrl);
 
   // Clean title
   let epaperTitle = epaper.title || 'नव मंच';
