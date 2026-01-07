@@ -37,22 +37,14 @@ function getCroppedImageUrl(pageImage, section, baseUrl) {
   }
   
   try {
-    const cloudNameMatch = pageImage.match(/res\.cloudinary\.com\/([^\/]+)/);
-    const uploadIndex = pageImage.indexOf('/image/upload/');
+    // Preserve full Cloudinary path after /image/upload/
+    const match = pageImage.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
+    if (!match) return null;
+
+    const base = match[1];       // up to and including /image/upload/
+    const rest = match[2];       // version + folders + public_id
     
-    if (!cloudNameMatch || uploadIndex === -1) return null;
-    
-    const cloudName = cloudNameMatch[1];
-    const afterUpload = pageImage.substring(uploadIndex + '/image/upload/'.length);
-    const segments = afterUpload.split('/');
-    let publicId = segments[segments.length - 1];
-    let version = '';
-    
-    if (segments.length >= 2 && segments[segments.length - 2].match(/^v\d+$/)) {
-      version = segments[segments.length - 2];
-    }
-    
-    // Crop transformation with ultra-fast optimizations
+    // Crop transformation with optimizations
     const cropTransforms = [
       `c_crop`,
       `w_${Math.round(section.width)}`,
@@ -65,11 +57,10 @@ function getCroppedImageUrl(pageImage, section, baseUrl) {
       `dpr_1`
     ].join(',');
     
-    const croppedUrl = version
-      ? `https://res.cloudinary.com/${cloudName}/image/upload/${cropTransforms}/${version}/${publicId}`
-      : `https://res.cloudinary.com/${cloudName}/image/upload/${cropTransforms}/${publicId}`;
+    // Insert transforms before existing path (keeps folders + version)
+    const croppedUrl = `${base}${cropTransforms}/${rest}`;
     
-    // Further optimize the cropped image
+    // Further normalize via optimizeImageForShare (HTTPS, absolute)
     return optimizeImageForShare(croppedUrl, baseUrl, true);
   } catch (e) {
     return null;
