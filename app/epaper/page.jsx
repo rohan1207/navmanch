@@ -37,7 +37,12 @@ export async function generateMetadata() {
     const epapers = await getEpapers();
     if (epapers && Array.isArray(epapers) && epapers.length > 0) {
       const latest = epapers[0];
-      latestEpaperImage = latest.thumbnail || latest.pages?.[0]?.image || '/logo1.png';
+      // Prefer pre-generated shareImageUrl, then page thumbnail, then page image
+      latestEpaperImage =
+        (latest.shareImageUrl && latest.shareImageUrl.trim()) ||
+        (latest.pages?.[0]?.thumbnail && latest.pages[0].thumbnail.trim()) ||
+        (latest.pages?.[0]?.image && latest.pages[0].image.trim()) ||
+        '/logo1.png';
     }
   } catch (error) {
     // Use default logo if API fails

@@ -76,8 +76,12 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  // Get first page image (prefer page image, then thumbnail)
-  const imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail || '';
+  // Get first page image (prefer pre-generated shareImageUrl, then page image, then thumbnail)
+  const imageUrl =
+    (epaper.shareImageUrl && epaper.shareImageUrl.trim()) ||
+    (epaper.pages?.[0]?.image && epaper.pages[0].image.trim()) ||
+    (epaper.thumbnail && epaper.thumbnail.trim()) ||
+    '';
   
   // Optimize image for instant loading
   let optimizedImage = optimizeImageForShare(imageUrl, baseUrl);

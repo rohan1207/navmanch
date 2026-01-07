@@ -39,13 +39,15 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    // Get image - prioritize featuredImage, then generic image, then imageGallery, then first <img> from content
+    // Get image - prioritize shareImageUrl, then featuredImage, then image, then gallery, then first <img> from content
     let imageUrl = '';
     
-    if (article.featuredImage && article.featuredImage.trim() !== '') {
+    if (article.shareImageUrl && article.shareImageUrl.trim() !== '') {
+      imageUrl = article.shareImageUrl.trim();
+    } else if (article.featuredImage && article.featuredImage.trim() !== '') {
       imageUrl = article.featuredImage.trim();
     } else if (article.image && String(article.image).trim() !== '') {
-      // Many articles only have `image` field (used in UI) – use it as second priority
+      // Many articles only have `image` field (used in UI) – use it as next priority
       imageUrl = String(article.image).trim();
     } else if (article.imageGallery && article.imageGallery.length > 0) {
       const firstImage = article.imageGallery.find(img => img && img.trim() !== '');

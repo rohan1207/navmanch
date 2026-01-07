@@ -141,8 +141,14 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  // Get section image - use cropped if available, otherwise section image
-  let imageUrl = section.croppedImage || section.image || '';
+  // Get section image - PRIORITY: shareImageUrl → croppedImage → section image → page image → epaper thumbnail
+  let imageUrl =
+    (section.shareImageUrl && section.shareImageUrl.trim()) ||
+    (section.croppedImage && section.croppedImage.trim()) ||
+    (section.image && section.image.trim()) ||
+    (page?.image && page.image.trim()) ||
+    (epaper.thumbnail && epaper.thumbnail.trim()) ||
+    '';
   
   // Generate cropped URL from coordinates if available
   if (page?.image && section.x !== undefined && section.y !== undefined && 
@@ -153,12 +159,10 @@ export async function generateMetadata({ params }) {
     } else {
       imageUrl = page.image;
     }
-  } else if (!imageUrl) {
-    imageUrl = page?.image || epaper.thumbnail || '';
   }
   
   // Optimize image for instant loading
-  let optimizedImage = optimizeImageForShare(imageUrl, baseUrl, !!section.croppedImage);
+  let optimizedImage = optimizeImageForShare(imageUrl, baseUrl, !!section.shareImageUrl || !!section.croppedImage);
   
   // CRITICAL: Ensure image URL is absolute HTTPS and accessible
   if (!optimizedImage.startsWith('http')) {
