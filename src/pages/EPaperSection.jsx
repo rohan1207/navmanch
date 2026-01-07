@@ -440,6 +440,17 @@ const EPaperSection = () => {
     return `${day}/${month}/${year}`;
   };
 
+  // Format date for footer (Jan 08,2026 format)
+  const formatDateForFooterNew = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${month} ${day},${year}`;
+  };
+
   // Use current origin for sharing; backend social preview ensures OG tags
   // When custom domain points here, origin will be https://navmanchnews.com
   const frontendBase = typeof window !== 'undefined' ? window.location.origin : 'https://navmanchnews.com';
@@ -582,17 +593,21 @@ const EPaperSection = () => {
 
       // Calculate footer dimensions
       const footerPadding = 20; // Top and bottom padding
-      const footerLineHeight = 20; // Line height for text
-      const footerFontSize = Math.max(12, Math.min(sectionImg.width * 0.02, 16)); // Responsive font size
+      const footerLineHeight = 18; // Line height for text
+      const footerFontSize = Math.max(11, Math.min(sectionImg.width * 0.018, 14)); // Responsive font size
+      const footerLineSpacing = 4; // Spacing between lines
       
       // Prepare footer text
-      const websiteUrl = 'navmanchnews.com/epaper';
-      const dateText = formatDateForFooter(epaper?.date || '');
-      const pageText = `पृष्ठ ${page?.pageNo || ''}`;
+      const editionText = 'Pune Edition';
+      const dateText = formatDateForFooterNew(epaper?.date || '');
+      const pageText = `page No ${page?.pageNo || ''}`;
+      const poweredByText = 'Powered by -navmanchnews.com';
       
       // Calculate footer height
-      // Website URL (1 line) + spacing + date and page (1 line) + padding
-      const footerHeight = footerLineHeight + 8 + footerLineHeight + (footerPadding * 2);
+      // Line before footer (2px) + padding (8px) + 3 lines of text + spacing + padding
+      const footerLineHeight_px = 2; // Height of the line before footer
+      const footerLinePadding = 8; // Padding above line
+      const footerHeight = footerLineHeight_px + footerLinePadding + (footerLineHeight * 3) + (footerLineSpacing * 2) + (footerPadding * 2);
 
       // Set canvas size: section width, extended height (section + logo area + footer)
       canvas.width = sectionImg.width;
@@ -605,40 +620,37 @@ const EPaperSection = () => {
       // Draw section image below logo area
       ctx.drawImage(sectionImg, 0, logoAreaHeight);
 
+      // Draw line before footer
+      const footerLineY = sectionImg.height + logoAreaHeight + footerLinePadding;
+      ctx.fillStyle = '#000000'; // Black
+      ctx.fillRect(0, footerLineY, canvas.width, 2);
+      
       // Draw footer at the bottom
-      const footerY = sectionImg.height + logoAreaHeight;
+      const footerY = footerLineY + footerLinePadding + footerPadding;
       
       // Set font properties - Use system fonts that support Devanagari
-      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Hindi', 'Hind', Arial, sans-serif`;
+      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Hindi', 'Hind', Arial, sans-serif`;
       ctx.fillStyle = '#666666'; // Gray color for metadata
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       
-      // Draw website URL
+      // Draw edition text (first line)
+      ctx.fillStyle = '#666666';
+      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      ctx.fillText(editionText, canvas.width / 2, footerY);
+      
+      // Draw date and page number (second line)
+      const secondLineY = footerY + footerLineHeight + footerLineSpacing;
       ctx.fillStyle = '#666666';
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
-      ctx.fillText(websiteUrl, canvas.width / 2, footerY + footerPadding);
+      const datePageText = `${dateText}  ${pageText}`;
+      ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       
-      // Draw date and page number side by side
-      const metadataY = footerY + footerPadding + footerLineHeight + 8;
-      ctx.fillStyle = '#333333'; // Darker for metadata
+      // Draw powered by text (third line)
+      const thirdLineY = secondLineY + footerLineHeight + footerLineSpacing;
+      ctx.fillStyle = '#666666';
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
-      
-      // Calculate text widths for centering
-      const dateWidth = ctx.measureText(dateText).width;
-      const separatorWidth = ctx.measureText(' • ').width;
-      const pageWidth = ctx.measureText(pageText).width;
-      const totalWidth = dateWidth + separatorWidth + pageWidth;
-      const startX = (canvas.width - totalWidth) / 2;
-      
-      // Draw date
-      ctx.fillText(dateText, startX, metadataY);
-      
-      // Draw separator
-      ctx.fillText(' • ', startX + dateWidth, metadataY);
-      
-      // Draw page number
-      ctx.fillText(pageText, startX + dateWidth + separatorWidth, metadataY);
+      ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
 
       // Draw logo above the clip (centered)
       if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0) {
@@ -840,26 +852,17 @@ const EPaperSection = () => {
                 </button>
               </div>
               
+              {/* Line before footer */}
+              <div className="w-full h-0.5 bg-black my-4"></div>
+              
               {/* Footer Section - Metadata */}
-              <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-4 pb-4">
-                {/* Website URL */}
-                <div className="text-center mb-3">
-                  <a 
-                    href="https://navmanchnews.com/epaper" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs md:text-sm text-metaGray hover:text-newsRed font-medium tracking-wide transition-colors"
-                  >
-                    navmanchnews.com/epaper
-                  </a>
+              <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2 pb-4">
+                {/* Footer text - 3 lines */}
+                <div className="text-center space-y-1 text-xs md:text-sm text-metaGray">
+                  <div className="font-medium">Pune Edition</div>
+                  <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
+                  <div>Powered by -navmanchnews.com</div>
                 </div>
-                
-                {/* Date and Page Number - Side by side */}
-                <div className="flex items-center justify-center gap-4 px-4 text-xs md:text-sm text-metaGray">
-                  <span>{formatDateForFooter(epaper.date)}</span>
-                  <span className="font-semibold text-deepCharcoal">•</span>
-                  <span>पृष्ठ {page.pageNo}</span>
-                  </div>
               </div>
             </div>
           </div>
@@ -908,26 +911,17 @@ const EPaperSection = () => {
               </button>
               </div>
               
+              {/* Line before footer */}
+              <div className="w-full h-0.5 bg-black mx-4"></div>
+              
               {/* Footer Metadata - Compact */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2.5 pb-3 px-4">
-                {/* Website URL */}
-                <div className="text-center mb-2">
-                  <a 
-                    href="https://navmanchnews.com/epaper" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-metaGray hover:text-newsRed font-medium tracking-wide transition-colors"
-                  >
-                    navmanchnews.com/epaper
-                  </a>
+                {/* Footer text - 3 lines */}
+                <div className="text-center space-y-1 text-xs text-metaGray">
+                  <div className="font-medium">Pune Edition</div>
+                  <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
+                  <div>Powered by -navmanchnews.com</div>
                 </div>
-                
-                {/* Date and Page Number - Side by side */}
-                <div className="flex items-center justify-center gap-3 text-xs text-metaGray">
-                  <span>{formatDateForFooter(epaper.date)}</span>
-                  <span className="font-semibold text-deepCharcoal">•</span>
-                  <span>पृष्ठ {page.pageNo}</span>
-                  </div>
               </div>
             </div>
           </div>
