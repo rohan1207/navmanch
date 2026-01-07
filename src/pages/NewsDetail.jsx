@@ -429,10 +429,10 @@ const NewsDetail = () => {
               </div>
 
               {/* Article Title with TTS Button */}
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <h1 className="text-3xl md:text-4xl font-bold text-deepCharcoal leading-tight flex-1">
-                {news.title}
-              </h1>
+              <div className="flex items-start gap-3 mb-3">
+                <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-deepCharcoal leading-tight flex-1 min-w-0">
+                  {news.title}
+                </h1>
                 <div className="flex-shrink-0 pt-1">
                   <TextToSpeech article={news} />
                 </div>
@@ -454,10 +454,10 @@ const NewsDetail = () => {
               </div>
 
               {/* Share and Back Buttons - above related news */}
-              <div className="mt-8 pt-6 border-t border-subtleGray flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="mt-8 pt-6 border-t border-subtleGray flex flex-row justify-between items-center gap-4">
                 <button
                   onClick={() => router.back()}
-                  className="bg-gradient-to-r from-newsRed to-editorialBlue text-cleanWhite px-6 py-2 rounded font-semibold hover:opacity-90 transition-opacity"
+                  className="bg-gradient-to-r from-newsRed to-editorialBlue text-cleanWhite px-4 sm:px-6 py-2 text-sm sm:text-base rounded font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
                 >
                   परत जा
                 </button>
