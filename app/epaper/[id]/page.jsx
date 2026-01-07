@@ -48,7 +48,10 @@ function optimizeImageForShare(imgUrl, baseUrl) {
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  const baseUrl = 'https://navmanchnews.com';
+  // Use environment variable or fallback - critical for share cards
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+    'https://navmanchnews.com';
   const epaperUrl = `${baseUrl}/epaper/${id}`;
   
   // Always return complete metadata, even on error
@@ -98,7 +101,17 @@ export async function generateMetadata({ params }) {
   const imageUrl = epaper.pages?.[0]?.image || epaper.thumbnail;
   
   // Optimize image for instant loading
-  const optimizedImage = optimizeImageForShare(imageUrl, baseUrl);
+  let optimizedImage = optimizeImageForShare(imageUrl, baseUrl);
+  
+  // CRITICAL: Ensure image URL is absolute HTTPS and accessible
+  if (!optimizedImage.startsWith('http')) {
+    optimizedImage = optimizedImage.startsWith('/') 
+      ? `${baseUrl}${optimizedImage}`
+      : `${baseUrl}/logo1.png`;
+  }
+  if (optimizedImage.startsWith('http://')) {
+    optimizedImage = optimizedImage.replace('http://', 'https://');
+  }
 
   // Clean title
   let epaperTitle = epaper.title || 'नव मंच';

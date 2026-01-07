@@ -46,7 +46,10 @@ function optimizeImageForShare(imgUrl, baseUrl) {
 }
 
 export async function generateMetadata() {
-  const baseUrl = 'https://navmanchnews.com';
+  // Use environment variable or fallback - critical for share cards
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+    'https://navmanchnews.com';
   const epaperUrl = `${baseUrl}/epaper`;
   
   // Get latest epaper for better image
@@ -62,7 +65,17 @@ export async function generateMetadata() {
   }
   
   // Optimize image for instant loading
-  const optimizedImage = optimizeImageForShare(latestEpaperImage, baseUrl);
+  let optimizedImage = optimizeImageForShare(latestEpaperImage, baseUrl);
+  
+  // CRITICAL: Ensure image URL is absolute HTTPS and accessible
+  if (!optimizedImage.startsWith('http')) {
+    optimizedImage = optimizedImage.startsWith('/') 
+      ? `${baseUrl}${optimizedImage}`
+      : `${baseUrl}/logo1.png`;
+  }
+  if (optimizedImage.startsWith('http://')) {
+    optimizedImage = optimizedImage.replace('http://', 'https://');
+  }
 
   return {
     metadataBase: new URL(baseUrl),
