@@ -1,6 +1,7 @@
 import './globals.css';
 import { HeaderProvider } from '@/src/context/HeaderContext';
 import ConditionalLayout from '@/src/components/ConditionalLayout';
+import ContentProtection from '@/src/components/ContentProtection';
 import Script from 'next/script';
 
 export const viewport = {
@@ -83,6 +84,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <ContentProtection />
         <HeaderProvider>
           <ConditionalLayout>
             {children}
