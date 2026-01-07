@@ -19,23 +19,9 @@ function optimizeImageForShare(imgUrl, baseUrl, isCropped = false) {
   if (optimized.startsWith('http://')) {
     optimized = optimized.replace('http://', 'https://');
   }
-  
-  // Apply ultra-fast Cloudinary optimizations
-  // IMPORTANT: Preserve full folder path; just inject transforms before it
-  if (optimized.includes('cloudinary.com') && optimized.includes('/image/upload/')) {
-    const match = optimized.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
-    if (match) {
-      const base = match[1];  // up to /image/upload/
-      const rest = match[2];  // version + folders + public_id
-      
-      const transforms = isCropped && optimized.includes('c_crop')
-        ? 'w_600,h_800,q_60,f_jpg,fl_progressive,dpr_1'
-        : 'w_600,h_800,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1';
-      
-      optimized = `${base}${transforms}/${rest}`;
-    }
-  }
-  
+
+  // NOTE: We now keep the original Cloudinary URL (no extra transforms)
+  // to avoid breaking paths for cropped section images.
   return optimized;
 }
 

@@ -19,20 +19,9 @@ function optimizeImageForShare(imgUrl, baseUrl) {
   if (optimized.startsWith('http://')) {
     optimized = optimized.replace('http://', 'https://');
   }
-  
-  // Apply ultra-fast Cloudinary optimizations for vertical cards (600x800)
-  // IMPORTANT: Preserve the full folder path (e.g. newspaper/epaper/1767/page-1.jpg)
-  if (optimized.includes('cloudinary.com') && optimized.includes('/image/upload/')) {
-    const match = optimized.match(/(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)/);
-    if (match) {
-      const base = match[1];   // up to and including /image/upload/
-      const rest = match[2];   // everything after (version + folders + public_id)
-      
-      const transforms = 'w_600,h_800,c_fill,g_auto,q_60,f_jpg,fl_progressive,dpr_1';
-      optimized = `${base}${transforms}/${rest}`;
-    }
-  }
-  
+
+  // NOTE: We now keep the original Cloudinary URL (no extra transforms)
+  // to avoid breaking folder paths or public IDs for epaper pages.
   return optimized;
 }
 
