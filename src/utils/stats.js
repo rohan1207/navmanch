@@ -10,10 +10,10 @@ const getTodayString = () => {
 
 // Initialize stats with default values
 const getDefaultStats = () => ({
-  totalVisits: 120,
-  visitsToday: 85,
-  totalHits: 250,
-  hitsToday: 180,
+  totalVisits: 0,
+  visitsToday: 0,
+  totalHits: 0,
+  hitsToday: 0,
   lastVisitDate: getTodayString()
 });
 
