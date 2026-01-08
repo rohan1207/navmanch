@@ -85,41 +85,48 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         isCheckingSubscriptionRef.current = false;
         
         // Check if we can get email/phone from localStorage to check backend
-        const stored = localStorage.getItem('navmanch_subscription');
-        if (stored) {
-          try {
-            const sub = JSON.parse(stored);
-            if (sub.email || sub.phone) {
-              // Check backend with stored email/phone (async, won't interfere with form)
-              isSubscribed(sub.email, sub.phone).then(subscribed => {
-                if (subscribed) {
-                  // Clear popup shown flag so popup won't show again
-                  if (typeof window !== 'undefined') {
-                    sessionStorage.removeItem('navmanch_popup_shown');
-                  }
-                  
-                  setShowWelcomeBack(true);
-                  const subscriberName = getSubscriberName();
-                  // Only update form if user hasn't started typing
-                  if (!formData.name && !formData.email && !formData.phone) {
-                    setFormData({
-                      name: subscriberName || '',
-                      email: '',
-                      phone: ''
-                    });
-                  }
-                  setTimeout(() => {
-                    setShowWelcomeBack(false);
-                    onCloseRef.current();
-                  }, 2000);
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const stored = window.localStorage.getItem('navmanch_subscription');
+            if (stored) {
+              try {
+                const sub = JSON.parse(stored);
+                if (sub.email || sub.phone) {
+                  // Check backend with stored email/phone (async, won't interfere with form)
+                  isSubscribed(sub.email, sub.phone).then(subscribed => {
+                    if (subscribed) {
+                      // Clear popup shown flag so popup won't show again
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.removeItem('navmanch_popup_shown');
+                      }
+                      
+                      setShowWelcomeBack(true);
+                      const subscriberName = getSubscriberName();
+                      // Only update form if user hasn't started typing
+                      if (!formData.name && !formData.email && !formData.phone) {
+                        setFormData({
+                          name: subscriberName || '',
+                          email: '',
+                          phone: ''
+                        });
+                      }
+                      setTimeout(() => {
+                        setShowWelcomeBack(false);
+                        onCloseRef.current();
+                      }, 2000);
+                    }
+                  }).catch(() => {
+                    // Ignore errors, continue with form
+                  });
                 }
-              }).catch(() => {
-                // Ignore errors, continue with form
-              });
+              } catch (e) {
+                // Ignore JSON parse errors
+              }
             }
-          } catch (e) {
-            // Ignore parse errors
           }
+        } catch (storageError) {
+          // Some browsers (e.g. Safari private mode) may block localStorage access
+          // Safely ignore and continue with empty form
         }
       }
     } else if (!isOpen) {
