@@ -594,7 +594,7 @@ const EPaperSection = () => {
       // Calculate footer dimensions
       const footerPadding = 20; // Top and bottom padding
       const footerLineHeight = 18; // Line height for text
-      const footerFontSize = Math.max(11, Math.min(sectionImg.width * 0.018, 14)); // Responsive font size
+      const footerFontSize = Math.max(13, Math.min(sectionImg.width * 0.022, 16)); // Responsive font size (increased)
       const footerLineSpacing = 4; // Spacing between lines
       
       // Prepare footer text
@@ -642,14 +642,14 @@ const EPaperSection = () => {
       // Draw date and page number (second line)
       const secondLineY = footerY + footerLineHeight + footerLineSpacing;
       ctx.fillStyle = '#000000';
-      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       const datePageText = `${dateText}  ${pageText}`;
       ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       
       // Draw powered by text (third line)
       const thirdLineY = secondLineY + footerLineHeight + footerLineSpacing;
       ctx.fillStyle = '#000000';
-      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
 
       // Draw logo above the clip (centered)
@@ -858,8 +858,8 @@ const EPaperSection = () => {
               {/* Footer Section - Metadata */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2 pb-4">
                 {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-xs md:text-sm text-deepCharcoal">
-                  <div className="font-medium">Pune Edition</div>
+                <div className="text-center space-y-1 text-sm md:text-base text-deepCharcoal font-bold">
+                  <div>Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
                   <div>Powered by -navmanchnews.com</div>
                 </div>
@@ -917,8 +917,8 @@ const EPaperSection = () => {
               {/* Footer Metadata - Compact */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2.5 pb-3 px-4">
                 {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-xs text-deepCharcoal">
-                  <div className="font-medium">Pune Edition</div>
+                <div className="text-center space-y-1 text-sm text-deepCharcoal font-bold">
+                  <div>Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
                   <div>Powered by -navmanchnews.com</div>
                 </div>
