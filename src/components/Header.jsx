@@ -324,7 +324,7 @@ const Header = () => {
           </div>
 
           {/* Top Info Bar - Desktop (Now Second) */}
-          <div className="hidden md:flex items-center justify-between py-1.5 px-4 bg-gradient-to-r from-subtleGray/40 to-subtleGray/20 border-b border-subtleGray/60">
+          <div className="hidden md:flex items-center justify-between py-1.5 px-4 mt-4 bg-gradient-to-r from-subtleGray/40 to-subtleGray/20 border-b border-subtleGray/60">
             <div className="flex items-center gap-6 text-xs">
               <div className="flex items-center gap-2">
                 <span className="text-metaGray font-semibold tracking-wide">PRGI Reg No:</span>
@@ -378,7 +378,7 @@ const Header = () => {
           </div>
 
           {/* Top Info Bar - Mobile (Now Second) */}
-          <div className="md:hidden py-2 px-3 bg-gradient-to-r from-subtleGray/40 to-subtleGray/20 border-b border-subtleGray/60">
+          <div className="md:hidden py-2 px-3 mt-3 bg-gradient-to-r from-subtleGray/40 to-subtleGray/20 border-b border-subtleGray/60">
             <div className="flex flex-col gap-1.5 text-[10px]">
               <div className="flex items-center justify-between flex-wrap gap-1">
                 <div className="flex items-center gap-1.5">
