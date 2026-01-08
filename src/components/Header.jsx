@@ -61,14 +61,28 @@ const Header = () => {
     
     checkSubscription();
     
-    // Listen for subscription updates
+    // Listen for subscription updates (custom event)
     const handleSubscriptionUpdate = () => {
       checkSubscription();
     };
     
+    // Listen for storage changes (cross-tab synchronization)
+    const handleStorageChange = (e) => {
+      if (e.key === 'navmanch_subscription') {
+        checkSubscription();
+        // Clear popup shown flag when subscription is detected in another tab
+        if (e.newValue && typeof window !== 'undefined') {
+          sessionStorage.removeItem('navmanch_popup_shown');
+        }
+      }
+    };
+    
     window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    
     return () => {
       window.removeEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -80,14 +94,20 @@ const Header = () => {
                           location?.includes('/epaper/'));
     
     // Don't show popup if already subscribed or if it's a shared link
-    if (isSubscribedSync() || isSharedLink) return;
+    if (isSubscribedSync() || isSharedLink || isSubscribeOpen) return;
+    
+    // Check if popup was already shown in this session
+    const popupShownKey = 'navmanch_popup_shown';
+    const popupShown = sessionStorage.getItem(popupShownKey);
+    if (popupShown === 'true') return;
     
     let scrollCount = 0;
     let lastScrollTop = 0;
+    let hasTriggered = false;
     
     const handleScroll = () => {
       // Check again if subscribed (in case user subscribed while scrolling)
-      if (isSubscribedSync()) {
+      if (isSubscribedSync() || hasTriggered) {
         window.removeEventListener('scroll', handleScroll);
         return;
       }
@@ -99,7 +119,9 @@ const Header = () => {
         scrollCount++;
         lastScrollTop = scrollTop;
         
-        if (scrollCount >= 2 && !isSubscribedSync() && !isSubscribeOpen) {
+        if (scrollCount >= 2 && !isSubscribedSync() && !isSubscribeOpen && !hasTriggered) {
+          hasTriggered = true;
+          sessionStorage.setItem(popupShownKey, 'true');
           setIsSubscribeOpen(true);
           window.removeEventListener('scroll', handleScroll);
         }
@@ -112,7 +134,7 @@ const Header = () => {
     };
   }, [isSubscribeOpen, location, subscription]);
 
-  // Load stats and animate on updates
+  // Load stats and ani mate on updates
   useEffect(() => {
     const delay = 500; // Small delay before animation
     const duration = 1000; // 1 second animation duration
@@ -214,14 +236,19 @@ const Header = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile Header - Logo, Date, Buttons (Now First) */}
-          <div className="flex items-center justify-between py-3 md:hidden gap-2">
-            <div className="flex flex-col min-w-0 flex-shrink">
+          <div className="relative flex items-center justify-between py-3 md:hidden">
+            {/* Left: Date */}
+            <div className="flex flex-col min-w-0 flex-shrink-0 z-10">
               <span className="text-[10px] text-metaGray leading-tight whitespace-nowrap">
                 {currentDate}
               </span>
             </div>
 
-            <Link href="/" className="flex-shrink-0 mx-auto">
+            {/* Center: Logo - Absolutely positioned for perfect centering */}
+            <Link 
+              href="/" 
+              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20"
+            >
               <img
                 src="/logo1.png"
                 alt="नव मंच"
@@ -229,7 +256,8 @@ const Header = () => {
               />
             </Link>
 
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Right: Buttons */}
+            <div className="flex items-center gap-1.5 flex-shrink-0 z-10 ml-auto">
               <Link
                 href="/epaper"
                 className="px-2.5 py-1.5 rounded-full bg-editorialBlue text-cleanWhite text-[10px] sm:text-xs font-semibold tracking-wide hover:bg-editorialBlue/90 transition-all duration-300 shadow-sm hover:shadow-md whitespace-nowrap"
@@ -252,18 +280,18 @@ const Header = () => {
           </div>
 
           {/* Desktop / Tablet Header - Logo, Date, Buttons (Now First) */}
-          <div className="hidden md:flex items-center justify-between py-2 h-auto min-h-[90px]">
+          <div className="relative hidden md:flex items-center justify-between py-2 h-auto min-h-[90px]">
             {/* Left: Date */}
-            <div className="flex items-center">
+            <div className="flex items-center flex-shrink-0 z-10">
               <span className="text-sm text-slateBody font-light tracking-wide">
                 {currentDate}
               </span>
             </div>
 
-            {/* Center: Logo */}
+            {/* Center: Logo - Absolutely positioned for perfect centering */}
             <Link
               href="/"
-              className="flex-shrink-0 transform scale-125 md:scale-150 transition-transform duration-300 hover:scale-[1.3] md:hover:scale-[1.55]"
+              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 scale-125 md:scale-150 transition-transform duration-300 hover:scale-[1.3] md:hover:scale-[1.55]"
             >
               <img
                 src="/logo1.png"
@@ -273,7 +301,7 @@ const Header = () => {
             </Link>
 
             {/* Right: E-Paper and Subscribe */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-shrink-0 z-10 ml-auto">
               <Link
                 href="/epaper"
                 className="bg-editorialBlue text-cleanWhite px-5 py-2 text-sm font-semibold uppercase tracking-wider hover:bg-editorialBlue/80 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 rounded-full"

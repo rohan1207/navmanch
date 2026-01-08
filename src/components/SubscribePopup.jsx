@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaUser, FaEnvelope, FaPhone, FaCheckCircle } from 'react-icons/fa';
 import { setSubscription, isSubscribedSync, isSubscribed, checkSubscriberExists, getSubscriberName } from '../utils/subscription';
 
@@ -14,6 +14,16 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  
+  // Use refs to track initialization and prevent unnecessary resets
+  const hasInitializedRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  const isCheckingSubscriptionRef = useRef(false);
+
+  // Update onClose ref when it changes
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Prevent body scroll when popup is open
   useEffect(() => {
@@ -27,47 +37,80 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
     };
   }, [isOpen]);
 
-  // Check if already subscribed when popup opens
+  // Check if already subscribed when popup opens - only run once when popup opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      isCheckingSubscriptionRef.current = true;
+      
       // First check localStorage (fast, synchronous)
       const subscribedLocal = isSubscribedSync();
       
       if (subscribedLocal) {
         // User is already subscribed locally - show welcome back and auto-close
+        // Clear popup shown flag so popup won't show again
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('navmanch_popup_shown');
+        }
+        
         setShowWelcomeBack(true);
         const subscriberName = getSubscriberName();
-        setFormData(prev => ({
-          ...prev,
-          name: subscriberName || ''
-        }));
+        setFormData({
+          name: subscriberName || '',
+          email: '',
+          phone: ''
+        });
         
         // Auto-close after 2 seconds
         const timer = setTimeout(() => {
           setShowWelcomeBack(false);
-          onClose();
+          onCloseRef.current();
+          isCheckingSubscriptionRef.current = false;
         }, 2000);
         
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer);
+          isCheckingSubscriptionRef.current = false;
+        };
       } else {
+        // Initialize form as empty for new subscription (only if form is truly empty)
+        // Don't reset if user has already started typing
+        const currentFormHasData = formData.name || formData.email || formData.phone;
+        if (!currentFormHasData) {
+          setFormData({ name: '', email: '', phone: '' });
+        }
+        setShowWelcomeBack(false);
+        setErrors({});
+        setIsSuccess(false);
+        isCheckingSubscriptionRef.current = false;
+        
         // Check if we can get email/phone from localStorage to check backend
         const stored = localStorage.getItem('navmanch_subscription');
         if (stored) {
           try {
             const sub = JSON.parse(stored);
             if (sub.email || sub.phone) {
-              // Check backend with stored email/phone
+              // Check backend with stored email/phone (async, won't interfere with form)
               isSubscribed(sub.email, sub.phone).then(subscribed => {
                 if (subscribed) {
+                  // Clear popup shown flag so popup won't show again
+                  if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem('navmanch_popup_shown');
+                  }
+                  
                   setShowWelcomeBack(true);
                   const subscriberName = getSubscriberName();
-                  setFormData(prev => ({
-                    ...prev,
-                    name: subscriberName || ''
-                  }));
+                  // Only update form if user hasn't started typing
+                  if (!formData.name && !formData.email && !formData.phone) {
+                    setFormData({
+                      name: subscriberName || '',
+                      email: '',
+                      phone: ''
+                    });
+                  }
                   setTimeout(() => {
                     setShowWelcomeBack(false);
-                    onClose();
+                    onCloseRef.current();
                   }, 2000);
                 }
               }).catch(() => {
@@ -78,21 +121,19 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
             // Ignore parse errors
           }
         }
-        
-        setShowWelcomeBack(false);
-        // Reset form when opening for new subscription
-        setFormData({ name: '', email: '', phone: '' });
-        setErrors({});
-        setIsSuccess(false);
       }
-    } else {
-      // Reset when popup closes
-      setFormData({ name: '', email: '', phone: '' });
+    } else if (!isOpen) {
+      // Reset when popup closes - only reset if form wasn't successfully submitted
+      if (!isSuccess) {
+        setFormData({ name: '', email: '', phone: '' });
+      }
       setErrors({});
       setIsSuccess(false);
       setShowWelcomeBack(false);
+      hasInitializedRef.current = false;
+      isCheckingSubscriptionRef.current = false;
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, isSuccess]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -170,6 +211,12 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
               email: existingSubscriber.email || formData.email.trim(),
               phone: existingSubscriber.phone || formData.phone.replace(/\s/g, '')
             });
+            
+            // Clear popup shown flag so user won't see popup again
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('navmanch_popup_shown');
+            }
+            
             setShowWelcomeBack(true);
             setFormData(prev => ({
               ...prev,
@@ -179,7 +226,7 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
             // Auto-close after 2 seconds
             setTimeout(() => {
               setShowWelcomeBack(false);
-              onClose();
+              onCloseRef.current();
             }, 2000);
             return;
           }
@@ -194,11 +241,16 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         phone: formData.phone.replace(/\s/g, '')
       });
 
+      // Clear popup shown flag so user won't see popup again
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('navmanch_popup_shown');
+      }
+
       setIsSuccess(true);
       
       // Close popup after 2 seconds
       setTimeout(() => {
-        onClose();
+        onCloseRef.current();
       }, 2000);
     } catch (error) {
       console.error('Subscription error:', error);
