@@ -630,25 +630,25 @@ const EPaperSection = () => {
       
       // Set font properties - Use system fonts that support Devanagari
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Hindi', 'Hind', Arial, sans-serif`;
-      ctx.fillStyle = '#666666'; // Gray color for metadata
+      ctx.fillStyle = '#000000'; // Black color for metadata
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       
       // Draw edition text (first line)
-      ctx.fillStyle = '#666666';
+      ctx.fillStyle = '#000000';
       ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(editionText, canvas.width / 2, footerY);
       
       // Draw date and page number (second line)
       const secondLineY = footerY + footerLineHeight + footerLineSpacing;
-      ctx.fillStyle = '#666666';
+      ctx.fillStyle = '#000000';
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       const datePageText = `${dateText}  ${pageText}`;
       ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       
       // Draw powered by text (third line)
       const thirdLineY = secondLineY + footerLineHeight + footerLineSpacing;
-      ctx.fillStyle = '#666666';
+      ctx.fillStyle = '#000000';
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
 
@@ -858,7 +858,7 @@ const EPaperSection = () => {
               {/* Footer Section - Metadata */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2 pb-4">
                 {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-xs md:text-sm text-metaGray">
+                <div className="text-center space-y-1 text-xs md:text-sm text-deepCharcoal">
                   <div className="font-medium">Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
                   <div>Powered by -navmanchnews.com</div>
@@ -917,7 +917,7 @@ const EPaperSection = () => {
               {/* Footer Metadata - Compact */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2.5 pb-3 px-4">
                 {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-xs text-metaGray">
+                <div className="text-center space-y-1 text-xs text-deepCharcoal">
                   <div className="font-medium">Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
                   <div>Powered by -navmanchnews.com</div>
