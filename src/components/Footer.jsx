@@ -18,7 +18,7 @@ const Footer = () => {
                 className="h-16 w-auto"
               />
             </Link>
-            <p className="text-slateBody text-sm mb-4 leading-relaxed">
+            <p className="text-deepCharcoal text-sm mb-4 leading-relaxed">
               महाराष्ट्रातील अग्रगण्य मराठी वृत्तपत्र. सत्य, निष्पक्ष आणि वस्तुनिष्ठ बातम्या.
             </p>
             <div className="space-y-2 text-sm">
@@ -34,29 +34,29 @@ const Footer = () => {
           {/* Quick Links */}
           <div>
             <h3 className="text-lg font-bold mb-4 text-deepCharcoal">द्रुत लिंक</h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-sm text-deepCharcoal">
               <li>
-                <Link href="/" className="text-slateBody hover:text-newsRed transition-colors">
+                <Link href="/" className="text-deepCharcoal hover:text-newsRed transition-colors">
                   मुखपृष्ठ
                 </Link>
               </li>
               <li>
-                <Link href="/epaper" className="text-slateBody hover:text-newsRed transition-colors">
+                <Link href="/epaper" className="text-deepCharcoal hover:text-newsRed transition-colors">
                   ई-पेपर
                 </Link>
               </li>
               <li>
-                <Link href="/gallery" className="text-slateBody hover:text-newsRed transition-colors">
+                <Link href="/gallery" className="text-deepCharcoal hover:text-newsRed transition-colors">
                   गॅलरी
                 </Link>
               </li>
               <li>
-                <Link href="/articles" className="text-slateBody hover:text-newsRed transition-colors">
+                <Link href="/articles" className="text-deepCharcoal hover:text-newsRed transition-colors">
                   लेख
                 </Link>
               </li>
               <li>
-                <Link href="/events" className="text-slateBody hover:text-newsRed transition-colors">
+                <Link href="/events" className="text-deepCharcoal hover:text-newsRed transition-colors">
                   कार्यक्रम
                 </Link>
               </li>
@@ -69,7 +69,7 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <FaMapMarkerAlt className="mt-1 text-newsRed flex-shrink-0" />
-                <span className="text-slateBody leading-relaxed">
+                <span className="text-deepCharcoal leading-relaxed">
                   स.नं २ अवनी ए विंग तिसरा फ्लोर ३०२,<br />
                   न्याती चौक, डी.पी.एस विद्यालय जवळ,<br />
                   मोहम्मदवाडी, पुणे सिटी,<br />
@@ -80,7 +80,7 @@ const Footer = () => {
                 <FaPhone className="text-newsRed flex-shrink-0" style={{ transform: 'scaleX(-1)' }} />
                 <a 
                   href="tel:+919158578008" 
-                  className="text-slateBody hover:text-newsRed transition-colors"
+                  className="text-deepCharcoal hover:text-newsRed transition-colors"
                 >
                   मो. नं. ९१५८५७८००८
                 </a>
@@ -89,7 +89,7 @@ const Footer = () => {
                 <FaEnvelope className="text-newsRed flex-shrink-0" />
                 <a 
                   href="mailto:navmanch25@gmail.com" 
-                  className="text-slateBody hover:text-newsRed transition-colors"
+                  className="text-deepCharcoal hover:text-newsRed transition-colors"
                 >
                   navmanch25@gmail.com
                 </a>
@@ -100,12 +100,12 @@ const Footer = () => {
           {/* Social Media */}
           <div>
             <h3 className="text-lg font-bold mb-4 text-deepCharcoal">सोशल मीडिया</h3>
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-4 mb-6 text-deepCharcoal">
               <a
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slateBody hover:text-newsRed transition-colors"
+                className="hover:text-newsRed transition-colors"
                 aria-label="Facebook"
               >
                 <FaFacebook className="w-6 h-6" />
@@ -114,7 +114,7 @@ const Footer = () => {
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slateBody hover:text-newsRed transition-colors"
+                className="hover:text-newsRed transition-colors"
                 aria-label="Twitter"
               >
                 <FaTwitter className="w-6 h-6" />
@@ -123,7 +123,7 @@ const Footer = () => {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slateBody hover:text-newsRed transition-colors"
+                className="hover:text-newsRed transition-colors"
                 aria-label="Instagram"
               >
                 <FaInstagram className="w-6 h-6" />
@@ -132,7 +132,7 @@ const Footer = () => {
                 href="https://youtube.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slateBody hover:text-newsRed transition-colors"
+                className="hover:text-newsRed transition-colors"
                 aria-label="YouTube"
               >
                 <FaYoutube className="w-6 h-6" />
@@ -141,7 +141,7 @@ const Footer = () => {
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slateBody hover:text-newsRed transition-colors"
+                className="hover:text-newsRed transition-colors"
                 aria-label="LinkedIn"
               >
                 <FaLinkedin className="w-6 h-6" />
@@ -154,7 +154,7 @@ const Footer = () => {
         <div className="mb-8 pt-6 border-t border-subtleGray">
           <div className="bg-subtleGray/50 rounded-lg p-6">
             <h4 className="text-sm font-bold text-deepCharcoal mb-3">सूचना:</h4>
-            <p className="text-xs text-slateBody leading-relaxed">
+            <p className="text-xs text-deepCharcoal leading-relaxed">
               या पोर्टलवर प्रकाशित होणाऱ्या सर्व बातम्या, लेख, विश्लेषण, मतलेख आणि इतर सामग्री ही संबंधित लेखक, संवाददाता किंवा योगदानकर्त्यांची वैयक्तिक मते, विचार आणि निष्कर्ष दर्शविते. जरी आवश्यकतेनुसार संपादकीय दुरुस्त्या केल्या जाऊ शकतात, तरी या पोर्टलचे संपादक, व्यवस्थापन किंवा संस्था या सामग्रीशी संपूर्णपणे सहमत असतीलच असे नाही.
             </p>
           </div>
@@ -162,11 +162,11 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="pt-6 border-t-2 border-subtleGray">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slateBody">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-deepCharcoal">
             <p className="text-center md:text-left">
               कॉपीराइट ©️ २०२५ <span className="font-bold text-newsRed">NAV MANCH</span>. सर्व हक्क सुरक्षित.
             </p>
-            <p className="text-xs text-metaGray">
+            <p className="text-xs text-deepCharcoal">
               Designed and developed by TheSocialKollab
             </p>
           </div>
