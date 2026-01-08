@@ -238,7 +238,7 @@ const Header = () => {
           {/* Mobile Header - Logo, Date, Buttons (Now First) */}
           <div className="relative flex items-center justify-between pt-4 pb-4 md:hidden">
             {/* Left: Date */}
-            <div className="flex flex-col min-w-0 flex-shrink-0 z-10">
+            <div className="flex flex-col min-w-0 flex-shrink-0 z-10 w-1/4 max-w-[120px]">
               <span className="text-[10px] text-metaGray leading-tight whitespace-nowrap">
                 {currentDate}
               </span>
@@ -247,17 +247,17 @@ const Header = () => {
             {/* Center: Logo - Absolutely positioned for perfect centering */}
             <Link 
               href="/" 
-              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-2 mb-2"
+              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-2 mb-2 max-w-[200px]"
             >
               <img
                 src="/logo1.png"
                 alt="नव मंच"
-                className="h-28 sm:h-28 w-auto"
+                className="h-28 sm:h-28 w-auto max-w-full"
               />
             </Link>
 
             {/* Right: Buttons */}
-            <div className="flex items-center gap-1.5 flex-shrink-0 z-10 ml-auto">
+            <div className="flex items-center gap-1.5 flex-shrink-0 z-10 ml-auto w-1/4 max-w-[140px] justify-end">
               <Link
                 href="/epaper"
                 className="px-2.5 py-1.5 rounded-full bg-editorialBlue text-cleanWhite text-[10px] sm:text-xs font-semibold tracking-wide hover:bg-editorialBlue/90 transition-all duration-300 shadow-sm hover:shadow-md whitespace-nowrap"
@@ -282,7 +282,7 @@ const Header = () => {
           {/* Desktop / Tablet Header - Logo, Date, Buttons (Now First) */}
           <div className="relative hidden md:flex items-center justify-between pt-4 pb-4 h-auto min-h-[90px]">
             {/* Left: Date */}
-            <div className="flex items-center flex-shrink-0 z-10">
+            <div className="flex items-center flex-shrink-0 z-10 w-1/3 min-w-[200px]">
               <span className="text-sm text-slateBody font-light tracking-wide">
                 {currentDate}
               </span>
@@ -291,17 +291,17 @@ const Header = () => {
             {/* Center: Logo - Absolutely positioned for perfect centering */}
             <Link
               href="/"
-              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-3 mb-2 scale-125 md:scale-150 transition-transform duration-300 hover:scale-[1.3] md:hover:scale-[1.55]"
+              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-3 mb-2 scale-125 md:scale-150 transition-transform duration-300 hover:scale-[1.3] md:hover:scale-[1.55] max-w-[300px]"
             >
               <img
                 src="/logo1.png"
                 alt="नव मंच"
-                className="h-28 md:h-32 w-auto"
+                className="h-28 md:h-32 w-auto max-w-full"
               />
             </Link>
 
             {/* Right: E-Paper and Subscribe */}
-            <div className="flex items-center space-x-3 flex-shrink-0 z-10 ml-auto">
+            <div className="flex items-center space-x-3 flex-shrink-0 z-10 ml-auto w-1/3 min-w-[200px] justify-end">
               <Link
                 href="/epaper"
                 className="bg-editorialBlue text-cleanWhite px-5 py-2 text-sm font-semibold uppercase tracking-wider hover:bg-editorialBlue/80 transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 rounded-full"
