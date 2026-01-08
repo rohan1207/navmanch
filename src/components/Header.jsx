@@ -236,7 +236,7 @@ const Header = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile Header - Logo, Date, Buttons (Now First) */}
-          <div className="relative flex items-center justify-between pt-4 pb-3 md:hidden">
+          <div className="relative flex items-center justify-between pt-4 pb-4 md:hidden">
             {/* Left: Date */}
             <div className="flex flex-col min-w-0 flex-shrink-0 z-10">
               <span className="text-[10px] text-metaGray leading-tight whitespace-nowrap">
@@ -247,7 +247,7 @@ const Header = () => {
             {/* Center: Logo - Absolutely positioned for perfect centering */}
             <Link 
               href="/" 
-              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-2"
+              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-2 mb-2"
             >
               <img
                 src="/logo1.png"
@@ -280,7 +280,7 @@ const Header = () => {
           </div>
 
           {/* Desktop / Tablet Header - Logo, Date, Buttons (Now First) */}
-          <div className="relative hidden md:flex items-center justify-between pt-4 pb-2 h-auto min-h-[90px]">
+          <div className="relative hidden md:flex items-center justify-between pt-4 pb-4 h-auto min-h-[90px]">
             {/* Left: Date */}
             <div className="flex items-center flex-shrink-0 z-10">
               <span className="text-sm text-slateBody font-light tracking-wide">
@@ -291,7 +291,7 @@ const Header = () => {
             {/* Center: Logo - Absolutely positioned for perfect centering */}
             <Link
               href="/"
-              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-3 scale-125 md:scale-150 transition-transform duration-300 hover:scale-[1.3] md:hover:scale-[1.55]"
+              className="absolute left-1/2 transform -translate-x-1/2 flex-shrink-0 z-20 top-3 mb-2 scale-125 md:scale-150 transition-transform duration-300 hover:scale-[1.3] md:hover:scale-[1.55]"
             >
               <img
                 src="/logo1.png"
