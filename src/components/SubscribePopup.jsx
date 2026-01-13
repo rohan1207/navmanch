@@ -88,20 +88,20 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
             const stored = window.localStorage.getItem('navmanch_subscription');
-            if (stored) {
-              try {
-                const sub = JSON.parse(stored);
-                if (sub.email || sub.phone) {
+        if (stored) {
+          try {
+            const sub = JSON.parse(stored);
+            if (sub.email || sub.phone) {
                   // Check backend with stored email/phone (async, won't interfere with form)
-                  isSubscribed(sub.email, sub.phone).then(subscribed => {
-                    if (subscribed) {
+              isSubscribed(sub.email, sub.phone).then(subscribed => {
+                if (subscribed) {
                       // Clear popup shown flag so popup won't show again
                       if (typeof window !== 'undefined') {
                         sessionStorage.removeItem('navmanch_popup_shown');
                       }
                       
-                      setShowWelcomeBack(true);
-                      const subscriberName = getSubscriberName();
+                  setShowWelcomeBack(true);
+                  const subscriberName = getSubscriberName();
                       // Only update form if user hasn't started typing
                       if (!formData.name && !formData.email && !formData.phone) {
                         setFormData({
@@ -110,19 +110,19 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
                           phone: ''
                         });
                       }
-                      setTimeout(() => {
-                        setShowWelcomeBack(false);
+                  setTimeout(() => {
+                    setShowWelcomeBack(false);
                         onCloseRef.current();
-                      }, 2000);
-                    }
-                  }).catch(() => {
-                    // Ignore errors, continue with form
-                  });
+                  }, 2000);
                 }
-              } catch (e) {
-                // Ignore JSON parse errors
-              }
+              }).catch(() => {
+                // Ignore errors, continue with form
+              });
             }
+          } catch (e) {
+                // Ignore JSON parse errors
+          }
+        }
           }
         } catch (storageError) {
           // Some browsers (e.g. Safari private mode) may block localStorage access

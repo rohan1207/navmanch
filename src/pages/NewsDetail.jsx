@@ -388,9 +388,9 @@ const NewsDetail = () => {
           {/* Main Content */}
           <div className="lg:col-span-8 order-1 lg:order-2">
             <article className="bg-cleanWhite rounded-lg border border-subtleGray px-4 sm:px-8 py-6 shadow-sm">
-              {/* Category + breadcrumb style + top share buttons */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div className="flex items-center space-x-3">
+              {/* Category + By + Date + top share buttons */}
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   {(category || news.categoryId) && (
                     <Link
                       href={`/category/${category?.id || category?._id || news.categoryId?.id || news.categoryId?._id || news.categoryId}`}
@@ -400,11 +400,20 @@ const NewsDetail = () => {
                       <span>{category?.name || news.categoryId?.name}</span>
                     </Link>
                   )}
+                  <span className="text-xs text-deepCharcoal hidden sm:inline">•</span>
+                  <span className="text-xs sm:text-sm text-deepCharcoal">
+                    By: <span className="font-semibold text-deepCharcoal">Navmanchnews</span>
+                  </span>
+                  <span className="text-xs text-deepCharcoal">•</span>
+                  <span className="text-xs sm:text-sm text-deepCharcoal">
+                    {new Date(news.publishedAt || news.createdAt || news.date).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end gap-3">
-                  <span className="text-xs text-metaGray">
-                  {new Date(news.publishedAt || news.createdAt || news.date).toLocaleDateString('mr-IN')}
-                </span>
+                <div className="flex items-center justify-end">
                   {/* Top share buttons (all devices) 
                       - On phones ShareButtons component already shows icon-only (labels hidden on small screens)
                    */}
