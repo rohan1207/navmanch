@@ -449,8 +449,8 @@ const NewsDetail = () => {
 
               {/* Article Meta */}
               <div className="flex flex-wrap items-center gap-3 text-sm text-metaGray mb-6 pb-4 border-b border-subtleGray">
-                <span>{new Date(news.date || news.publishedAt || news.createdAt).toLocaleDateString('mr-IN')}</span>
-                <span>•</span>
+                {/* <span>{new Date(news.date || news.publishedAt || news.createdAt).toLocaleDateString('mr-IN')}</span> */}
+               
                 <span>{news.author?.name || news.author}</span>
               </div>
 
