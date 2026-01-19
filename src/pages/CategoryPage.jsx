@@ -19,11 +19,9 @@ const CategoryPage = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        console.log('Loading category page for categoryId:', categoryId);
         
         // Get categories
         const categories = await getCategories();
-        console.log('Loaded categories:', categories.length);
         
         // Convert categoryId to string for comparison
         const categoryIdStr = categoryId?.toString();
@@ -37,8 +35,6 @@ const CategoryPage = () => {
                  catNameEn === categoryIdStr;
         });
         
-        console.log('Found category:', foundCategory ? foundCategory.name : 'NOT FOUND');
-        
         if (foundCategory) {
           setCategory(foundCategory);
           // Show category immediately, don't wait for articles
@@ -46,19 +42,14 @@ const CategoryPage = () => {
           
           // Get articles for this category - use _id if available, otherwise id
           const catId = foundCategory._id || foundCategory.id;
-          console.log('Fetching articles for category ID:', catId);
           const categoryArticles = await getArticlesByCategory(catId);
-          console.log('Loaded articles from API:', categoryArticles?.length || 0);
           
           if (categoryArticles && categoryArticles.length > 0) {
-            console.log('✅ Using API articles');
             setArticles(categoryArticles);
           } else {
-            console.log('⚠️ No API articles, trying fallback');
             // Fallback to JSON
             const fallbackCat = newsData.categories.find(c => c.id === categoryId);
             if (fallbackCat && fallbackCat.news) {
-              console.log('Using fallback JSON data');
               setArticles(fallbackCat.news.map(article => ({
                 ...article,
                 _id: article.id,
@@ -68,7 +59,6 @@ const CategoryPage = () => {
             }
           }
         } else {
-          console.log('⚠️ Category not found in API, using fallback');
           // Fallback to JSON
           const fallbackCat = newsData.categories.find((cat) => cat.id === categoryId);
           if (fallbackCat) {

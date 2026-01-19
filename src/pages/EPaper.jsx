@@ -16,12 +16,9 @@ const EPaper = () => {
   // Function to load epapers
   const loadEpaperData = React.useCallback(async () => {
     try {
-      console.log('🔄 Loading epapers from backend...');
       const loaded = await getEpapers();
-      console.log('📦 Epapers response:', loaded ? `Received ${Array.isArray(loaded) ? loaded.length : 'non-array'} items` : 'null/undefined');
       
       if (loaded && Array.isArray(loaded) && loaded.length > 0) {
-        console.log(`✅ Successfully loaded ${loaded.length} epapers from backend`);
         setEpapers(loaded);
         // Update selected epaper if it exists
         setSelectedEpaper(prev => {

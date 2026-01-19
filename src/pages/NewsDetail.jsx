@@ -438,7 +438,7 @@ const NewsDetail = () => {
               </div>
 
               {/* Article Title with TTS Button */}
-              <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-start gap-3 mb-1">
                 <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-deepCharcoal leading-tight flex-1 min-w-0">
                   {news.title}
                 </h1>
@@ -448,7 +448,7 @@ const NewsDetail = () => {
               </div>
 
               {/* Article Meta */}
-              <div className="flex flex-wrap items-center gap-3 text-sm text-metaGray mb-6 pb-4 border-b border-subtleGray">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-metaGray mb-0.5 pb-1 border-b border-subtleGray">
                 {/* <span>{new Date(news.date || news.publishedAt || news.createdAt).toLocaleDateString('mr-IN')}</span> */}
                
                 <span>{news.author?.name || news.author}</span>

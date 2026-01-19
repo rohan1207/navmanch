@@ -71,12 +71,6 @@ export async function generateMetadata({ params }) {
       finalImageUrl = finalImageUrl.replace('http://', 'https://');
     }
     
-    // DEBUG: Log image URLs for troubleshooting
-    console.log('[METADATA DEBUG] Article ID:', id);
-    console.log('[METADATA DEBUG] Original Image URL:', imageUrl);
-    console.log('[METADATA DEBUG] Final Image URL:', finalImageUrl);
-    console.log('[METADATA DEBUG] Base URL:', baseUrl);
-
     // Get description
     const description = article.summary || 
       (article.content ? String(article.content).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200) : '') ||

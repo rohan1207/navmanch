@@ -57,7 +57,6 @@ const EPaperViewer = () => {
       try {
         const epapers = await getEpapers();
         if (!epapers || epapers.length === 0) {
-          console.log('No epapers found');
           setLoading(false);
           setTimeout(() => router.push('/epaper'), 500);
           return;
@@ -82,7 +81,6 @@ const EPaperViewer = () => {
         });
         
         if (found) {
-          console.log('✅ Found epaper:', found.title, 'ID:', found.id || found._id);
           setEpaper(found);
           if (found.pages && found.pages.length > 0) {
             setSelectedPage(found.pages[0]);
@@ -92,8 +90,6 @@ const EPaperViewer = () => {
           }
           setLoading(false);
         } else {
-          console.log('❌ Epaper not found for id:', id);
-          console.log('Available epaper IDs:', epapers.map(ep => ({ id: ep.id, _id: ep._id, title: ep.title })));
           setLoading(false);
           setTimeout(() => router.push('/epaper'), 500);
         }

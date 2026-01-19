@@ -51,7 +51,6 @@ export const apiFetch = async (endpoint, options = {}) => {
   
   try {
     const fullUrl = `${API_BASE}${path}`;
-    console.log(`🌐 API Call: ${fetchOptions.method || 'GET'} ${fullUrl}`);
     
     const res = await fetch(fullUrl, { 
       ...fetchOptions, 
@@ -60,8 +59,6 @@ export const apiFetch = async (endpoint, options = {}) => {
       signal: controller.signal
     });
     if (timeoutId) clearTimeout(timeoutId);
-
-    console.log(`📡 API Response: ${res.status} ${res.statusText} for ${path}`);
 
     if (!res.ok) {
       // Log the error for debugging
@@ -97,14 +94,12 @@ export const apiFetch = async (endpoint, options = {}) => {
     let data;
     if (contentType.includes('application/json')) {
       data = await res.json();
-      console.log(`✅ API Success: Received JSON data for ${path}`, Array.isArray(data) ? `(${data.length} items)` : '(object)');
     } else if (contentType.includes('text/html')) {
       // If we get HTML instead of JSON, server might be returning error page
       console.warn(`⚠️ Received HTML instead of JSON for ${endpoint}`);
       return null;
     } else {
       data = await res.text();
-      console.log(`✅ API Success: Received text data for ${path}`);
     }
 
     // Cache successful GET responses (only on client side)
@@ -681,7 +676,6 @@ export const getShorts = async () => {
 // Get all epapers
 export const getEpapers = async () => {
   try {
-    console.log('Fetching epapers from:', `${API_BASE}/epapers`);
     const data = await apiFetch('/epapers', {
       timeout: 15000,
       useCache: true,
@@ -689,13 +683,9 @@ export const getEpapers = async () => {
       critical: true // Mark as critical to ensure it's attempted
     });
     
-    console.log('Epapers API response:', data ? `Received ${Array.isArray(data) ? data.length : 'non-array'} items` : 'null/undefined');
-    
     if (data && Array.isArray(data) && data.length > 0) {
-      console.log('✅ Successfully loaded epapers from backend:', data.length);
       return data;
     } else if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
-      console.log('✅ Successfully loaded epapers from backend (nested):', data.data.length);
       return data.data;
     } else {
       console.warn('⚠️ Epapers API returned empty or invalid data:', data);
@@ -727,7 +717,6 @@ export const getEpaper = async (id) => {
   
   try {
     // First try by ID (numeric or MongoDB ObjectId)
-    console.log('🔍 Fetching epaper by ID:', decodedId, 'from:', `${API_BASE}/epapers/${decodedId}`);
     let data = await apiFetch(`/epapers/${decodedId}`, {
       timeout: 15000,
       useCache: true,
@@ -736,13 +725,11 @@ export const getEpaper = async (id) => {
     });
     
     if (data && (data.id || data._id || data.title)) {
-      console.log('✅ Successfully loaded epaper by ID:', decodedId);
       return data;
     }
     
     // If not found by ID, try by slug (URL-encoded)
     const encodedSlug = encodeURIComponent(decodedId);
-    console.log('🔍 Trying to fetch epaper by slug:', decodedId, 'from:', `${API_BASE}/epapers/slug/${encodedSlug}`);
     data = await apiFetch(`/epapers/slug/${encodedSlug}`, {
       timeout: 15000,
       useCache: true,
@@ -751,13 +738,11 @@ export const getEpaper = async (id) => {
     });
     
     if (data && (data.id || data._id || data.title)) {
-      console.log('✅ Successfully loaded epaper by slug:', decodedId);
       return data;
     }
     
     // Try one more time with the original encoded ID
     if (id !== decodedId) {
-      console.log('🔍 Trying with original encoded ID:', id);
       data = await apiFetch(`/epapers/slug/${id}`, {
         timeout: 15000,
         useCache: true,
@@ -766,7 +751,6 @@ export const getEpaper = async (id) => {
       });
       
       if (data && (data.id || data._id || data.title)) {
-        console.log('✅ Successfully loaded epaper by encoded slug:', id);
         return data;
       }
     }

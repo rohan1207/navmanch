@@ -10,7 +10,6 @@ export const loadEpapers = async () => {
     // Fetch from API (primary source)
     const response = await apiFetch('/epapers', { method: 'GET' });
     if (response && Array.isArray(response)) {
-      console.log('Loaded epapers from API:', response.length);
       // Don't save to localStorage - data is too large with base64 images
       return response;
     }
@@ -18,9 +17,7 @@ export const loadEpapers = async () => {
     // Return empty array if API returns empty or invalid response
     return [];
   } catch (apiError) {
-    // API not available - log but don't try localStorage (data too large)
-    console.log('API not available:', apiError.message);
-    console.log('Cannot use localStorage fallback - e-paper data too large');
+    // API not available - don't try localStorage (data too large)
     // Return empty array - frontend will use fallback data from newsData.json
     return [];
   }

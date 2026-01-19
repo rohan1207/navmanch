@@ -268,7 +268,6 @@ const EPaperSection = () => {
       try {
         const epapers = await getEpapers();
         if (!epapers || epapers.length === 0) {
-          console.log('No epapers found');
           setLoading(false);
           setTimeout(() => router.push('/epaper'), 500);
           return;
@@ -293,13 +292,10 @@ const EPaperSection = () => {
         });
         
         if (!found) {
-          console.log('❌ Epaper not found for id:', id);
-          console.log('Available epaper IDs:', epapers.map(ep => ({ id: ep.id, _id: ep._id, title: ep.title })));
           setLoading(false);
           setTimeout(() => router.push('/epaper'), 500);
           return;
         }
-        console.log('✅ Found epaper:', found.title);
         setEpaper(found);
 
         const foundPage = found.pages?.find(p => {
@@ -307,22 +303,11 @@ const EPaperSection = () => {
           return p.pageNo === pNo;
         });
         if (!foundPage) {
-          console.log('❌ Page not found:', pageNo);
           setLoading(false);
           setTimeout(() => router.push(`/epaper/${id}`), 500);
           return;
         }
-        console.log('✅ Found page:', foundPage.pageNo);
         setPage(foundPage);
-
-        // Log all available sections for debugging
-        console.log('🔍 Looking for section:', sectionId);
-        console.log('📋 Available sections:', foundPage.news?.map(n => ({
-          slug: n.slug,
-          id: n.id,
-          _id: n._id ? String(n._id) : null,
-          title: n.title
-        })));
 
         // Find section by ID first (most reliable), then by slug, then by _id
         // IMPORTANT: Check ID first because slugs like "Untitled" are not unique
@@ -336,7 +321,6 @@ const EPaperSection = () => {
           if (nId !== undefined && nId !== null) {
             const match = String(nId) === String(sId) || nId === parseInt(sId) || nId === sId;
             if (match) {
-              console.log('✅ Matched by id:', nId, '===', sId);
               return true;
             }
           }
@@ -345,7 +329,6 @@ const EPaperSection = () => {
           if (n_id) {
             const match = n_id === String(sId) || String(n_id) === String(sId);
             if (match) {
-              console.log('✅ Matched by _id:', n_id, '===', sId);
               return true;
             }
           }
@@ -353,20 +336,16 @@ const EPaperSection = () => {
           // Finally match by slug (only if it's meaningful and unique)
           // Skip if slug is "Untitled" or empty - those are not unique
           if (nSlug && nSlug.trim() !== '' && nSlug.toLowerCase() !== 'untitled' && nSlug === sId) {
-            console.log('✅ Matched by slug:', nSlug, '===', sId);
             return true;
           }
           
           return false;
         });
         if (!foundSection) {
-          console.log('❌ Section not found:', sectionId);
-          console.log('Available sections:', foundPage.news?.map(n => ({ id: n.id, title: n.title })));
           setLoading(false);
           setTimeout(() => router.push(`/epaper/${id}`), 500);
           return;
         }
-        console.log('✅ Found section:', foundSection.id);
         setSection(foundSection);
 
         // Generate cropped image URL

@@ -96,12 +96,6 @@ export async function generateMetadata({ params }) {
     optimizedImage = optimizedImage.replace('http://', 'https://');
   }
 
-  // DEBUG: Log image URLs for epaper metadata
-  console.log('[EPAPER METADATA] ID:', id);
-  console.log('[EPAPER METADATA] Original imageUrl:', imageUrl);
-  console.log('[EPAPER METADATA] OptimizedImage:', optimizedImage);
-  console.log('[EPAPER METADATA] Base URL:', baseUrl);
-
   // Clean title
   let epaperTitle = epaper.title || 'नव मंच';
   epaperTitle = epaperTitle

@@ -30,7 +30,6 @@ const SportsScores = () => {
       let liveMatches = [];
       if (liveResponse.status === 'fulfilled') {
         const liveData = liveResponse.value;
-        console.log('Live scores response:', liveData);
         // Sports Monk API v2 returns { data: [...] }
         // Sports Monk API v3 returns { data: [...] }
         liveMatches = liveData?.data || (Array.isArray(liveData) ? liveData : []);
@@ -42,7 +41,6 @@ const SportsScores = () => {
       let upcoming = [];
       if (upcomingResponse.status === 'fulfilled') {
         const upcomingData = upcomingResponse.value;
-        console.log('Upcoming matches response:', upcomingData);
         upcoming = upcomingData?.data || (Array.isArray(upcomingData) ? upcomingData : []);
       } else {
         console.error('Upcoming matches error:', upcomingResponse.reason);
@@ -50,9 +48,6 @@ const SportsScores = () => {
 
       setLiveScores(Array.isArray(liveMatches) ? liveMatches : []);
       setUpcomingMatches(Array.isArray(upcoming) ? upcoming : []);
-
-      // Log for debugging
-      console.log(`Loaded ${liveMatches.length} live matches and ${upcoming.length} upcoming matches for ${selectedSport}`);
     } catch (err) {
       console.error('Error fetching sports data:', err);
       setError('डेटा लोड करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
