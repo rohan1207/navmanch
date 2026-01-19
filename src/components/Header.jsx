@@ -54,9 +54,28 @@ const Header = () => {
 
   // Check subscription status
   useEffect(() => {
-    const checkSubscription = () => {
+    const checkSubscription = async () => {
       const sub = getSubscription();
       setSubscription(sub);
+      
+      // If localStorage subscription exists (even if expired), verify with backend
+      if (sub && (sub.email || sub.phone)) {
+        try {
+          const stillSubscribed = await isSubscribed(sub.email, sub.phone);
+          if (stillSubscribed) {
+            // Backend confirms subscription - update localStorage and set popup flag
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('navmanch_popup_shown', 'true');
+            }
+            // Refresh subscription data
+            const updatedSub = getSubscription();
+            setSubscription(updatedSub);
+          }
+        } catch (error) {
+          // Ignore errors, fallback to localStorage check
+          console.warn('Error verifying subscription with backend:', error);
+        }
+      }
     };
     
     checkSubscription();
@@ -70,9 +89,9 @@ const Header = () => {
     const handleStorageChange = (e) => {
       if (e.key === 'navmanch_subscription') {
         checkSubscription();
-        // Clear popup shown flag when subscription is detected in another tab
+        // Set popup shown flag when subscription is detected in another tab
         if (e.newValue && typeof window !== 'undefined') {
-          sessionStorage.removeItem('navmanch_popup_shown');
+          sessionStorage.setItem('navmanch_popup_shown', 'true');
         }
       }
     };
@@ -332,7 +351,7 @@ const Header = () => {
               </div>
               <div className="hidden lg:flex items-center gap-2">
                 <span className="text-metaGray font-semibold tracking-wide">Chief Editor:</span>
-                <span className="text-deepCharcoal font-semibold">शिवानी सुरवसे पाटील</span>
+                <span className="text-deepCharcoal font-semibold">shivani survase patil</span>
               </div>
             </div>
 
@@ -394,7 +413,7 @@ const Header = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-metaGray font-semibold">Chief Editor:</span>
-                <span className="text-deepCharcoal font-semibold">शिवानी सुरवसे पाटील</span>
+                <span className="text-deepCharcoal font-semibold">shivani survase patil</span>
               </div>
               
               {/* Mobile Statistics - Compact */}

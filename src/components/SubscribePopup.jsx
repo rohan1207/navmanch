@@ -48,9 +48,9 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
       
       if (subscribedLocal) {
         // User is already subscribed locally - show welcome back and auto-close
-        // Clear popup shown flag so popup won't show again
+        // Set popup shown flag so popup won't show again
         if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('navmanch_popup_shown');
+          sessionStorage.setItem('navmanch_popup_shown', 'true');
         }
         
         setShowWelcomeBack(true);
@@ -95,9 +95,9 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
                   // Check backend with stored email/phone (async, won't interfere with form)
               isSubscribed(sub.email, sub.phone).then(subscribed => {
                 if (subscribed) {
-                      // Clear popup shown flag so popup won't show again
+                      // Set popup shown flag so popup won't show again
                       if (typeof window !== 'undefined') {
-                        sessionStorage.removeItem('navmanch_popup_shown');
+                        sessionStorage.setItem('navmanch_popup_shown', 'true');
                       }
                       
                   setShowWelcomeBack(true);
@@ -219,9 +219,9 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
               phone: existingSubscriber.phone || formData.phone.replace(/\s/g, '')
             });
             
-            // Clear popup shown flag so user won't see popup again
+            // Set popup shown flag so user won't see popup again
             if (typeof window !== 'undefined') {
-              sessionStorage.removeItem('navmanch_popup_shown');
+              sessionStorage.setItem('navmanch_popup_shown', 'true');
             }
             
             setShowWelcomeBack(true);
@@ -248,9 +248,9 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
         phone: formData.phone.replace(/\s/g, '')
       });
 
-      // Clear popup shown flag so user won't see popup again
+      // Set popup shown flag so user won't see popup again
       if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('navmanch_popup_shown');
+        sessionStorage.setItem('navmanch_popup_shown', 'true');
       }
 
       setIsSuccess(true);

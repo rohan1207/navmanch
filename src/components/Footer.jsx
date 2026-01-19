@@ -26,7 +26,7 @@ const Footer = () => {
                 <span className="font-semibold">PRGI Reg No:</span> MHMAR/25/A4153
               </p>
               <p className="text-deepCharcoal">
-                <span className="font-semibold">मुख्य संपादक:</span> शिवानी सुरवसे पाटील
+                <span className="font-semibold">मुख्य संपादक:</span> shivani survase patil
               </p>
             </div>
           </div>

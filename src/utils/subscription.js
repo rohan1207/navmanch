@@ -1,6 +1,6 @@
 // Subscription utility for managing user subscriptions
 const SUBSCRIPTION_KEY = 'navmanch_subscription';
-const SUBSCRIPTION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+const SUBSCRIPTION_DURATION = 365 * 24 * 60 * 60 * 1000; // 365 days in milliseconds (1 year)
 
 export const getSubscription = () => {
   if (typeof window === 'undefined') return null;
@@ -13,9 +13,10 @@ export const getSubscription = () => {
     const now = Date.now();
     
     // Check if subscription is still valid
+    // If expired, don't remove it immediately - check backend first
     if (subscription.expiresAt && now > subscription.expiresAt) {
-      // Subscription expired, remove it
-      localStorage.removeItem(SUBSCRIPTION_KEY);
+      // Subscription expired in localStorage, but check backend before removing
+      // Return null for now, but backend check will verify if still subscribed
       return null;
     }
     
