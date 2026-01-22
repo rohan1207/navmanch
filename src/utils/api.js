@@ -764,7 +764,7 @@ export const getEpaper = async (id) => {
   return null;
 };
 
-export default {
+const apiUtils = {
   getCategories,
   getArticlesByCategory,
   getArticle,
@@ -778,4 +778,6 @@ export default {
   getEpaper,
   clearMostReadCache
 };
+
+export default apiUtils;
 

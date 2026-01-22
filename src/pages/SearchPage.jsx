@@ -86,7 +86,13 @@ const SearchPage = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center">
             <h1 className="text-3xl md:text-4xl font-bold text-deepCharcoal">
-              {query ? `"${query}" साठी शोध परिणाम` : 'शोध'}
+              {query ? (
+                <>
+                  &ldquo;{query}&rdquo; साठी शोध परिणाम
+                </>
+              ) : (
+                'शोध'
+              )}
             </h1>
           </div>
           {query && (
@@ -133,7 +139,7 @@ const SearchPage = () => {
             {articles.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-2xl font-semibold text-deepCharcoal mb-4">
-                  "{query}" साठी कोणतेही परिणाम सापडले नाहीत
+                  &ldquo;{query}&rdquo; साठी कोणतेही परिणाम सापडले नाहीत
                 </p>
                 <p className="text-slateBody mb-6">
                   कृपया वेगळा शोध शब्द वापरून पुन्हा प्रयत्न करा
