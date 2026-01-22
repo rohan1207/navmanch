@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { FaBars, FaTimes, FaSearch, FaChevronDown } from 'react-icons/fa';
 import { useHeader } from '../context/HeaderContext';
+import { getSmartSearchPath } from '../utils/smartSearch';
 
 const Navigation = () => {
   const { isHeaderVisible, headerHeight, breakingNewsHeight } = useHeader();
   const pathname = usePathname();
+  const router = useRouter();
   
   // Calculate top position with smooth transition
   // When header is visible: headerHeight + breakingNewsHeight
@@ -38,11 +40,11 @@ const Navigation = () => {
   // Additional pages for hamburger menu
   const otherPages = [
     { name: 'ई पेपर', path: '/epaper' },
-    { name: 'आमचे कार्यक्रम', path: '/events' },
-    { name: 'गॅलरी', path: '/gallery' },
-    { name: 'लेख', path: '/articles' },
-    { name: 'आमच्याबद्दल', path: '/about' },
-    { name: 'संपर्क', path: '/contact' },
+    // { name: 'आमचे कार्यक्रम', path: '/events' },
+    // { name: 'गॅलरी', path: '/gallery' },
+    // { name: 'लेख', path: '/articles' },
+    // { name: 'आमच्याबद्दल', path: '/about' },
+    // { name: 'संपर्क', path: '/contact' },
   ];
 
   const isActive = (path) => {
@@ -83,8 +85,19 @@ const Navigation = () => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Handle search navigation
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+      // Check if search matches a page or category (smart search)
+      const smartPath = getSmartSearchPath(searchQuery);
+      
+      if (smartPath) {
+        // Direct match found - redirect to that page
+        router.push(smartPath);
+        setSearchOpen(false);
+        setSearchQuery('');
+      } else {
+        // No direct match - show search results
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        setSearchOpen(false);
+      }
     }
   };
 
@@ -225,11 +238,14 @@ const Navigation = () => {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {primaryCategories.map((cat) => (
-                  <Link
+                  <button
                     key={cat.id}
-                    href={cat.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2.5 sm:py-2 text-sm sm:text-base font-bold transition-all duration-300 rounded-md group touch-manipulation ${
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      router.push(cat.path);
+                    }}
+                    className={`w-full text-left block px-3 py-2.5 sm:py-2 text-sm sm:text-base font-bold transition-all duration-300 rounded-md group touch-manipulation cursor-pointer ${
                       isActive(cat.path)
                         ? 'text-red-700 bg-red-50'
                         : 'text-gray-800 hover:text-gray-950 hover:bg-gray-50 active:bg-gray-100'
@@ -239,7 +255,7 @@ const Navigation = () => {
                       <span>{cat.name}</span>
                       <FaChevronDown className="w-3 h-3 opacity-0 group-hover:opacity-100 transform -rotate-90 transition-all duration-300 flex-shrink-0" />
                     </span>
-                  </Link>
+                  </button>
                 ))}
               </div>
             </div>
@@ -251,11 +267,14 @@ const Navigation = () => {
               </h3>
               <div className="space-y-1">
                 {otherPages.map((page) => (
-                  <Link
+                  <button
                     key={page.path}
-                    href={page.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2.5 sm:py-2 text-sm sm:text-base font-bold transition-all duration-300 rounded-md group touch-manipulation ${
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      router.push(page.path);
+                    }}
+                    className={`w-full text-left block px-3 py-2.5 sm:py-2 text-sm sm:text-base font-bold transition-all duration-300 rounded-md group touch-manipulation cursor-pointer ${
                       isActive(page.path)
                         ? 'text-red-700 bg-red-50'
                         : 'text-gray-800 hover:text-gray-950 hover:bg-gray-50 active:bg-gray-100'
@@ -265,7 +284,7 @@ const Navigation = () => {
                       <span>{page.name}</span>
                       <FaChevronDown className="w-3 h-3 opacity-0 group-hover:opacity-100 transform -rotate-90 transition-all duration-300 flex-shrink-0" />
                     </span>
-                  </Link>
+                  </button>
                 ))}
               </div>
             </div>
