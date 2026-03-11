@@ -456,7 +456,7 @@ const Header = () => {
       <SubscribePopup 
         isOpen={isSubscribeOpen} 
         onClose={() => setIsSubscribeOpen(false)}
-        allowClose={isSubscribed()} // Only allow close if already subscribed
+        allowClose={false}
       />
     </>
   );

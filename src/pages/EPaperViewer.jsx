@@ -332,7 +332,7 @@ const EPaperViewer = () => {
       <SubscribePopup 
         isOpen={showSubscribePopup} 
         onClose={() => setShowSubscribePopup(false)}
-        allowClose={false} // Don't allow close - user must subscribe
+        allowClose={false}
       />
     </>
   );

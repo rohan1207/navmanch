@@ -1,6 +1,6 @@
 // Subscription utility for managing user subscriptions
 const SUBSCRIPTION_KEY = 'navmanch_subscription';
-const SUBSCRIPTION_DURATION = 365 * 24 * 60 * 60 * 1000; // 365 days in milliseconds (1 year)
+const SUBSCRIPTION_DURATION = 60 * 24 * 60 * 60 * 1000; // 60 days in milliseconds (approx. 2 months)
 
 export const getSubscription = () => {
   if (typeof window === 'undefined') return null;

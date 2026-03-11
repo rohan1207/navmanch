@@ -270,3 +270,4 @@ export const getSearchSuggestions = (query, limit = 5) => {
 // Export categories and pages for use in SearchPage
 export { categories, pages };
 
+
