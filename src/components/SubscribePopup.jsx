@@ -418,10 +418,10 @@ const SubscribePopup = ({ isOpen, onClose, allowClose = false }) => {
                 <FaCheckCircle className="w-10 h-10 text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-deepCharcoal mb-2">
-                धन्यवाद!
+                आपले स्वागत आहे!
               </h3>
               <p className="text-slateBody">
-                आपले सबस्क्रिप्शन यशस्वीरित्या पूर्ण झाले आहे
+                आपले सबस्क्रिप्शन यशस्वीरित्या पूर्ण झाले आहे.
               </p>
             </div>
           )}
