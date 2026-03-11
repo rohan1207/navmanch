@@ -14,7 +14,6 @@ import SubscribePopup from '../components/SubscribePopup';
 const EPaperViewer = () => {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const id = params?.id;
   const [epaper, setEpaper] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
@@ -24,15 +23,12 @@ const EPaperViewer = () => {
   const sidebarRef = useRef(null);
   const mainContentRef = useRef(null);
   
-  // Check if it's a shared link
-  const isSharedLink = searchParams?.toString().includes('shared=true');
-
-  // Check subscription on load (unless shared link)
+  // Check subscription on load
   useEffect(() => {
-    if (!isSharedLink && !isSubscribed()) {
+    if (!isSubscribed()) {
       setShowSubscribePopup(true);
     }
-  }, [isSharedLink]);
+  }, []);
 
   // Listen for subscription updates
   useEffect(() => {

@@ -105,32 +105,17 @@ const Header = () => {
     };
   }, []);
 
-  // Timed popup for first visit (after 4 seconds)
+  // Mandatory subscription: always show popup for non-subscribed users
   useEffect(() => {
-    // Check if it's a shared epaper link - allow reading without subscription
-    const isSharedLink = typeof window !== 'undefined' && 
-                         (window.location.search.includes('shared=true') || 
-                          location?.includes('/epaper/'));
-    
-    // Don't show popup if already subscribed or if it's a shared link
-    if (isSubscribedSync() || isSharedLink || isSubscribeOpen) return;
-    
-    // Check if popup was already shown in this session
-    const popupShownKey = 'navmanch_popup_shown';
-    const popupShown = sessionStorage.getItem(popupShownKey);
-    if (popupShown === 'true') return;
-    
-    const timerId = setTimeout(() => {
-      // Re-check subscription before showing popup
-      if (!isSubscribedSync() && !isSubscribeOpen) {
-        sessionStorage.setItem(popupShownKey, 'true');
+    // If not subscribed, force popup open and keep it open until subscription succeeds
+    if (!isSubscribedSync()) {
+      if (!isSubscribeOpen) {
         setIsSubscribeOpen(true);
       }
-    }, 4000);
-
-    return () => {
-      clearTimeout(timerId);
-    };
+    } else if (isSubscribeOpen) {
+      // If user became subscribed (e.g. in another tab), close popup
+      setIsSubscribeOpen(false);
+    }
   }, [isSubscribeOpen, location, subscription]);
 
   // Load stats and ani mate on updates

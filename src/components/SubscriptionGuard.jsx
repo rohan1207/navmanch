@@ -9,23 +9,15 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
   const [subscribed, setSubscribed] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const searchParams = useSearchParams();
-  const isSharedLink = typeof window !== 'undefined' && (searchParams?.get('shared') === 'true' || window.location.search.includes('shared=true'));
 
   useEffect(() => {
     const check = () => {
       const isSub = isSubscribed();
       setSubscribed(isSub);
       setIsChecking(false);
-      
-      // If shared link, show banner instead of blocking
-      if (isSharedLink && !isSub) {
-        // Allow viewing but show banner
-        return;
-      }
-      
+            
       // If not subscribed and requires subscription, show popup
-      if (!isSub && requireSubscription && !isSharedLink) {
+      if (!isSub && requireSubscription) {
         setShowPopup(true);
       }
     };
@@ -45,35 +37,10 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
     return () => {
       window.removeEventListener('subscriptionUpdated', handleUpdate);
     };
-  }, [requireSubscription, isSharedLink]);
-
-  // Show banner for shared links
-  if (isSharedLink && !subscribed && showBanner) {
-    return (
-      <>
-        <div className="bg-newsRed text-cleanWhite p-4 text-center sticky top-0 z-40 shadow-md">
-          <p className="text-sm font-semibold">
-            कृपया सबस्क्राईब करा पूर्ण सामग्री वाचण्यासाठी | 
-            <button 
-              onClick={() => setShowPopup(true)}
-              className="underline ml-2 font-bold hover:opacity-80"
-            >
-              सबस्क्राईब करा
-            </button>
-          </p>
-        </div>
-        {children}
-        <SubscribePopup 
-          isOpen={showPopup} 
-          onClose={() => setShowPopup(false)}
-          allowClose={false}
-        />
-      </>
-    );
-  }
+  }, [requireSubscription]);
 
   // Block if not subscribed and requires subscription
-  if (!subscribed && requireSubscription && !isSharedLink) {
+  if (!subscribed && requireSubscription) {
     return (
       <>
         <div className="min-h-screen bg-subtleGray flex items-center justify-center p-4">

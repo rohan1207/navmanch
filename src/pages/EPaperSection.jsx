@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaDownload } from 'react-icons/fa';
 import { getEpapers } from '../utils/api';
@@ -195,7 +195,6 @@ const SectionZoomableImage = ({ imageUrl, alt }) => {
 const EPaperSection = () => {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const id = params?.id;
   const pageNo = params?.pageNo;
   const sectionId = params?.sectionId;
@@ -206,9 +205,6 @@ const EPaperSection = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [showSubscribePopup, setShowSubscribePopup] = useState(false);
-  
-  // Check if it's a shared link
-  const isSharedLink = searchParams?.toString().includes('shared=true');
 
   // Track window size for responsive image sizing
   useEffect(() => {
@@ -220,12 +216,12 @@ const EPaperSection = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Check subscription on load (unless shared link)
+  // Check subscription on load
   useEffect(() => {
-    if (!isSharedLink && !isSubscribed()) {
+    if (!isSubscribed()) {
       setShowSubscribePopup(true);
     }
-  }, [isSharedLink]);
+  }, []);
 
   // Listen for subscription updates
   useEffect(() => {
@@ -518,7 +514,7 @@ const EPaperSection = () => {
   // Download section image with logo on top
   const downloadSectionWithLogo = async (sectionImageUrl, sectionTitle) => {
     // Check subscription before allowing download
-    if (!isSharedLink && !isSubscribed()) {
+    if (!isSubscribed()) {
       setShowSubscribePopup(true);
       return;
     }
