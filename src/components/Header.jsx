@@ -105,7 +105,7 @@ const Header = () => {
     };
   }, []);
 
-  // Scroll detection for popup
+  // Timed popup for first visit (after 4 seconds)
   useEffect(() => {
     // Check if it's a shared epaper link - allow reading without subscription
     const isSharedLink = typeof window !== 'undefined' && 
@@ -120,36 +120,16 @@ const Header = () => {
     const popupShown = sessionStorage.getItem(popupShownKey);
     if (popupShown === 'true') return;
     
-    let scrollCount = 0;
-    let lastScrollTop = 0;
-    let hasTriggered = false;
-    
-    const handleScroll = () => {
-      // Check again if subscribed (in case user subscribed while scrolling)
-      if (isSubscribedSync() || hasTriggered) {
-        window.removeEventListener('scroll', handleScroll);
-        return;
+    const timerId = setTimeout(() => {
+      // Re-check subscription before showing popup
+      if (!isSubscribedSync() && !isSubscribeOpen) {
+        sessionStorage.setItem(popupShownKey, 'true');
+        setIsSubscribeOpen(true);
       }
-      
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      
-      // Detect actual scroll (not just page load)
-      if (Math.abs(scrollTop - lastScrollTop) > 50) {
-        scrollCount++;
-        lastScrollTop = scrollTop;
-        
-        if (scrollCount >= 2 && !isSubscribedSync() && !isSubscribeOpen && !hasTriggered) {
-          hasTriggered = true;
-          sessionStorage.setItem(popupShownKey, 'true');
-          setIsSubscribeOpen(true);
-          window.removeEventListener('scroll', handleScroll);
-        }
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    }, 4000);
+
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timerId);
     };
   }, [isSubscribeOpen, location, subscription]);
 
