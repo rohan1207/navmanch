@@ -11,13 +11,17 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const check = () => {
-      const isSub = isSubscribed();
+    const check = async () => {
+      const isSub = await isSubscribed();
       setSubscribed(isSub);
       setIsChecking(false);
-            
-      // If not subscribed and requires subscription, show popup
+      
       if (!isSub && requireSubscription) {
+        if (typeof window !== 'undefined') {
+          const shown = sessionStorage.getItem('navmanch_popup_shown') === 'true';
+          if (shown) return;
+          sessionStorage.setItem('navmanch_popup_shown', 'true');
+        }
         setShowPopup(true);
       }
     };
@@ -26,11 +30,17 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
     
     // Listen for subscription updates
     const handleUpdate = () => {
-      const isSub = isSubscribed();
-      setSubscribed(isSub);
-      if (isSub) {
-        setShowPopup(false);
-      }
+      isSubscribed().then((isSub) => {
+        setSubscribed(isSub);
+        if (isSub) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('navmanch_popup_shown', 'true');
+          }
+          setShowPopup(false);
+        }
+      }).catch(() => {
+        // ignore
+      });
     };
     
     window.addEventListener('subscriptionUpdated', handleUpdate);
@@ -61,8 +71,13 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
         </div>
         <SubscribePopup 
           isOpen={showPopup} 
-          onClose={() => setShowPopup(false)}
-          allowClose={false}
+          onClose={() => {
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('navmanch_popup_shown', 'true');
+            }
+            setShowPopup(false);
+          }}
+          allowClose={true}
         />
       </>
     );

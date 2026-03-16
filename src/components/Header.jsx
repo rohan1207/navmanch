@@ -5,46 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import SubscribePopup from './SubscribePopup';
 import { useHeader } from '../context/HeaderContext';
-import { FaEye, FaChartLine } from 'react-icons/fa';
 import { isSubscribedSync, isSubscribed, getSubscriberInitial, getSubscription } from '../utils/subscription';
-import { getStats, getStatsSync, initStats } from '../utils/stats';
 
 const Header = () => {
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const { isHeaderVisible, headerRef } = useHeader();
   const location = usePathname();
-  // Initialize stats on component mount
-  const [stats, setStats] = useState(() => {
-    // Initialize stats from localStorage cache (synchronous for initial render)
-    // We'll fetch from API in useEffect
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('navmanch_stats');
-        if (stored) {
-          return JSON.parse(stored);
-        }
-      }
-    } catch (e) {
-      // Ignore
-    }
-    return {
-    totalVisits: 120,
-    visitsToday: 85,
-    totalHits: 250,
-      hitsToday: 180,
-      lastVisitDate: new Date().toISOString().split('T')[0]
-    };
-  });
-
-  const previousStatsRef = useRef(stats);
-  const isAnimatingRef = useRef(false);
-
-  // Initialize and increment stats on mount
-  useEffect(() => {
-    // Increment stats on page load
-    initStats();
-  }, []);
   
   const currentDate = new Date().toLocaleDateString('mr-IN', {
     day: 'numeric',
@@ -105,104 +72,32 @@ const Header = () => {
     };
   }, []);
 
-  // Mandatory subscription: always show popup for non-subscribed users
+  // Timed popup for first visit: show once per session for non-subscribed users
   useEffect(() => {
-    // If not subscribed, force popup open and keep it open until subscription succeeds
-    if (!isSubscribedSync()) {
-      if (!isSubscribeOpen) {
+    if (typeof window === 'undefined') return;
+
+    // If already subscribed, never show popup
+    if (isSubscribedSync()) {
+      if (isSubscribeOpen) setIsSubscribeOpen(false);
+      return;
+    }
+
+    // Check if popup was already shown or user subscribed in this session
+    const popupKey = 'navmanch_popup_shown';
+    const popupShown = sessionStorage.getItem(popupKey) === 'true';
+    if (popupShown) return;
+
+    // Show popup after short delay to avoid instant flash
+    const timerId = setTimeout(() => {
+      // Re-check before showing
+      if (!isSubscribedSync()) {
+        sessionStorage.setItem(popupKey, 'true');
         setIsSubscribeOpen(true);
       }
-    } else if (isSubscribeOpen) {
-      // If user became subscribed (e.g. in another tab), close popup
-      setIsSubscribeOpen(false);
-    }
+    }, 4000);
+
+    return () => clearTimeout(timerId);
   }, [isSubscribeOpen, location, subscription]);
-
-  // Load stats and ani mate on updates
-  useEffect(() => {
-    const delay = 500; // Small delay before animation
-    const duration = 1000; // 1 second animation duration
-    let timeoutId;
-    
-    const loadAndAnimateStats = async () => {
-      if (isAnimatingRef.current) return; // Don't start new animation while one is running
-      
-      // Fetch from backend API (global stats)
-      const targetValues = await getStats();
-      const startValues = { ...previousStatsRef.current };
-      
-      // Only animate if values changed
-      const hasChanged = 
-        startValues.totalVisits !== targetValues.totalVisits ||
-        startValues.visitsToday !== targetValues.visitsToday ||
-        startValues.totalHits !== targetValues.totalHits ||
-        startValues.hitsToday !== targetValues.hitsToday;
-      
-      if (!hasChanged) {
-        previousStatsRef.current = targetValues;
-        return;
-      }
-      
-      isAnimatingRef.current = true;
-      
-      timeoutId = setTimeout(() => {
-      const startTime = Date.now();
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        // Easing function for smooth animation (ease-out)
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-
-        setStats({
-            totalVisits: Math.floor(startValues.totalVisits + (targetValues.totalVisits - startValues.totalVisits) * easeOut),
-            visitsToday: Math.floor(startValues.visitsToday + (targetValues.visitsToday - startValues.visitsToday) * easeOut),
-            totalHits: Math.floor(startValues.totalHits + (targetValues.totalHits - startValues.totalHits) * easeOut),
-            hitsToday: Math.floor(startValues.hitsToday + (targetValues.hitsToday - startValues.hitsToday) * easeOut)
-        });
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-            // Ensure final values match target
-            setStats(targetValues);
-            previousStatsRef.current = targetValues;
-            isAnimatingRef.current = false;
-        }
-      };
-
-      requestAnimationFrame(animate);
-    }, delay);
-    };
-    
-    // Initial load with animation
-    loadAndAnimateStats();
-    
-    // Listen for stats updates
-    const handleStatsUpdate = () => {
-      loadAndAnimateStats();
-    };
-    
-    const handleStatsRefresh = () => {
-      loadAndAnimateStats();
-    };
-    
-    window.addEventListener('statsUpdated', handleStatsUpdate);
-    window.addEventListener('statsRefresh', handleStatsRefresh);
-    
-    // Also check for updates periodically (every 5 seconds to get global stats)
-    const intervalId = setInterval(() => {
-      loadAndAnimateStats();
-    }, 5000);
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      window.removeEventListener('statsUpdated', handleStatsUpdate);
-      window.removeEventListener('statsRefresh', handleStatsRefresh);
-      clearInterval(intervalId);
-    };
-  }, []);
 
   return (
     <>
@@ -307,7 +202,7 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Top Info Bar - Desktop (Now Second) */}
+          {/* Top Info Bar - Desktop (Registration + Editor + Email) */}
           <div className="hidden md:flex items-center justify-between py-1.5 px-4 mt-4 bg-gradient-to-r from-subtleGray/40 to-subtleGray/20 border-b border-subtleGray/60">
             <div className="flex items-center gap-6 text-xs">
               <div className="flex items-center gap-2">
@@ -320,38 +215,6 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Website Statistics - Center */}
-            <div className="hidden xl:flex items-center gap-4 px-4">
-              <div className="flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm rounded-md border border-subtleGray/40 shadow-sm">
-                <FaEye className="text-newsRed text-xs" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-metaGray leading-tight">Visit Today</span>
-                  <span className="text-xs font-bold text-deepCharcoal">{stats.visitsToday.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm rounded-md border border-subtleGray/40 shadow-sm">
-                <FaChartLine className="text-newsRed text-xs" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-metaGray leading-tight">Total Visit</span>
-                  <span className="text-xs font-bold text-deepCharcoal">{stats.totalVisits.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm rounded-md border border-subtleGray/40 shadow-sm">
-                <FaEye className="text-editorialBlue text-xs" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-metaGray leading-tight">Hits Today</span>
-                  <span className="text-xs font-bold text-deepCharcoal">{stats.hitsToday.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-white/60 backdrop-blur-sm rounded-md border border-subtleGray/40 shadow-sm">
-                <FaChartLine className="text-editorialBlue text-xs" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-metaGray leading-tight">Total Hits</span>
-                  <span className="text-xs font-bold text-deepCharcoal">{stats.totalHits.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-            </div>
-
             <a 
               href="mailto:navmanch25@gmail.com" 
               className="flex items-center gap-2 text-xs text-metaGray hover:text-newsRed transition-all duration-300 group"
@@ -361,7 +224,7 @@ const Header = () => {
             </a>
           </div>
 
-          {/* Top Info Bar - Mobile (Now Second) */}
+          {/* Top Info Bar - Mobile (Registration + Editor + Email) */}
           <div className="md:hidden py-2 px-3 mt-3 bg-gradient-to-r from-subtleGray/40 to-subtleGray/20 border-b border-subtleGray/60">
             <div className="flex flex-col gap-1.5 text-[10px]">
               <div className="flex items-center justify-between flex-wrap gap-1">
@@ -380,38 +243,6 @@ const Header = () => {
                 <span className="text-metaGray font-semibold">Chief Editor:</span>
                 <span className="text-deepCharcoal font-semibold">shivani survase patil</span>
               </div>
-              
-              {/* Mobile Statistics - Compact */}
-              <div className="flex items-center gap-2 mt-1 pt-1.5 border-t border-subtleGray/30">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
-                  <FaEye className="text-newsRed text-[10px]" />
-                  <span className="text-[9px] text-metaGray">Visit:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">{stats.visitsToday?.toLocaleString('en-IN') || 0}</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
-                  <FaChartLine className="text-newsRed text-[10px]" />
-                  <span className="text-[9px] text-metaGray">Total:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">
-                    {stats.totalVisits && stats.totalVisits >= 1000 
-                      ? `${(stats.totalVisits / 1000).toFixed(0)}K` 
-                      : (stats.totalVisits?.toLocaleString('en-IN') || 0)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
-                  <FaEye className="text-editorialBlue text-[10px]" />
-                  <span className="text-[9px] text-metaGray">Hits:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">{stats.hitsToday?.toLocaleString('en-IN') || 0}</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded border border-subtleGray/40">
-                  <FaChartLine className="text-editorialBlue text-[10px]" />
-                  <span className="text-[9px] text-metaGray">Total:</span>
-                  <span className="text-[9px] font-bold text-deepCharcoal">
-                    {stats.totalHits && stats.totalHits >= 1000 
-                      ? `${(stats.totalHits / 1000).toFixed(0)}K` 
-                      : (stats.totalHits?.toLocaleString('en-IN') || 0)}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -420,8 +251,13 @@ const Header = () => {
       {/* Subscribe Popup */}
       <SubscribePopup 
         isOpen={isSubscribeOpen} 
-        onClose={() => setIsSubscribeOpen(false)}
-        allowClose={false}
+        onClose={() => {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('navmanch_popup_shown', 'true');
+          }
+          setIsSubscribeOpen(false);
+        }}
+        allowClose={true}
       />
     </>
   );

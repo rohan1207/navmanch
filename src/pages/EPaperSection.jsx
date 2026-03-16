@@ -218,17 +218,33 @@ const EPaperSection = () => {
 
   // Check subscription on load
   useEffect(() => {
-    if (!isSubscribed()) {
-      setShowSubscribePopup(true);
-    }
+    const check = async () => {
+      const sub = await isSubscribed();
+      if (!sub) {
+        if (typeof window !== 'undefined') {
+          const shown = sessionStorage.getItem('navmanch_popup_shown') === 'true';
+          if (shown) return;
+          sessionStorage.setItem('navmanch_popup_shown', 'true');
+        }
+        setShowSubscribePopup(true);
+      }
+    };
+    check();
   }, []);
 
   // Listen for subscription updates
   useEffect(() => {
     const handleSubscriptionUpdate = () => {
-      if (isSubscribed()) {
-        setShowSubscribePopup(false);
-      }
+      isSubscribed().then((sub) => {
+        if (sub) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('navmanch_popup_shown', 'true');
+          }
+          setShowSubscribePopup(false);
+        }
+      }).catch(() => {
+        // ignore
+      });
     };
     
     window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
@@ -907,8 +923,13 @@ const EPaperSection = () => {
       {/* Subscribe Popup */}
       <SubscribePopup 
         isOpen={showSubscribePopup} 
-        onClose={() => setShowSubscribePopup(false)}
-        allowClose={false}
+        onClose={() => {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('navmanch_popup_shown', 'true');
+          }
+          setShowSubscribePopup(false);
+        }}
+        allowClose={true}
       />
     </>
   );

@@ -25,7 +25,20 @@ const EPaperViewer = () => {
   
   // Check subscription on load
   useEffect(() => {
-    if (!isSubscribed()) {
+    const check = async () => {
+      const sub = await isSubscribed();
+      if (!sub) {
+        // Only show if this session hasn't seen the popup yet
+        if (typeof window !== 'undefined') {
+          const shown = sessionStorage.getItem('navmanch_popup_shown') === 'true';
+          if (shown) return;
+          sessionStorage.setItem('navmanch_popup_shown', 'true');
+        }
+        setShowSubscribePopup(true);
+      }
+    };
+    check();
+  }, []);
       setShowSubscribePopup(true);
     }
   }, []);
@@ -33,9 +46,16 @@ const EPaperViewer = () => {
   // Listen for subscription updates
   useEffect(() => {
     const handleSubscriptionUpdate = () => {
-      if (isSubscribed()) {
-        setShowSubscribePopup(false);
-      }
+      isSubscribed().then((sub) => {
+        if (sub) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('navmanch_popup_shown', 'true');
+          }
+          setShowSubscribePopup(false);
+        }
+      }).catch(() => {
+        // ignore
+      });
     };
     
     window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
@@ -327,8 +347,13 @@ const EPaperViewer = () => {
       {/* Subscribe Popup */}
       <SubscribePopup 
         isOpen={showSubscribePopup} 
-        onClose={() => setShowSubscribePopup(false)}
-        allowClose={false}
+        onClose={() => {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('navmanch_popup_shown', 'true');
+          }
+          setShowSubscribePopup(false);
+        }}
+        allowClose={true}
       />
     </>
   );
