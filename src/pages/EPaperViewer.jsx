@@ -39,9 +39,6 @@ const EPaperViewer = () => {
     };
     check();
   }, []);
-      setShowSubscribePopup(true);
-    }
-  }, []);
 
   // Listen for subscription updates
   useEffect(() => {
