@@ -7,7 +7,7 @@ import { FaArrowLeft, FaDownload } from 'react-icons/fa';
 import { getEpapers } from '../utils/api';
 import ShareButtons from '../components/ShareButtons';
 import SEO from '../components/SEO';
-import { isSubscribed } from '../utils/subscription';
+import { isSubscribed, markPopupShown, isPopupMarkedShown } from '../utils/subscription';
 import SubscribePopup from '../components/SubscribePopup';
 
 // Mobile zoomable image component for sections
@@ -222,9 +222,8 @@ const EPaperSection = () => {
       const sub = await isSubscribed();
       if (!sub) {
         if (typeof window !== 'undefined') {
-          const shown = sessionStorage.getItem('navmanch_popup_shown') === 'true';
-          if (shown) return;
-          sessionStorage.setItem('navmanch_popup_shown', 'true');
+          if (isPopupMarkedShown()) return;
+          markPopupShown();
         }
         setShowSubscribePopup(true);
       }
@@ -237,9 +236,7 @@ const EPaperSection = () => {
     const handleSubscriptionUpdate = () => {
       isSubscribed().then((sub) => {
         if (sub) {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('navmanch_popup_shown', 'true');
-          }
+          markPopupShown();
           setShowSubscribePopup(false);
         }
       }).catch(() => {
@@ -924,9 +921,7 @@ const EPaperSection = () => {
       <SubscribePopup 
         isOpen={showSubscribePopup} 
         onClose={() => {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('navmanch_popup_shown', 'true');
-          }
+          markPopupShown();
           setShowSubscribePopup(false);
         }}
         allowClose={true}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { isSubscribed } from '../utils/subscription';
+import { isSubscribed, markPopupShown, isPopupMarkedShown } from '../utils/subscription';
 import SubscribePopup from './SubscribePopup';
 import { useSearchParams } from 'next/navigation';
 
@@ -18,9 +18,8 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
       
       if (!isSub && requireSubscription) {
         if (typeof window !== 'undefined') {
-          const shown = sessionStorage.getItem('navmanch_popup_shown') === 'true';
-          if (shown) return;
-          sessionStorage.setItem('navmanch_popup_shown', 'true');
+          if (isPopupMarkedShown()) return;
+          markPopupShown();
         }
         setShowPopup(true);
       }
@@ -33,9 +32,7 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
       isSubscribed().then((isSub) => {
         setSubscribed(isSub);
         if (isSub) {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('navmanch_popup_shown', 'true');
-          }
+          markPopupShown();
           setShowPopup(false);
         }
       }).catch(() => {
@@ -72,9 +69,7 @@ const SubscriptionGuard = ({ children, requireSubscription = true, showBanner = 
         <SubscribePopup 
           isOpen={showPopup} 
           onClose={() => {
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('navmanch_popup_shown', 'true');
-            }
+            markPopupShown();
             setShowPopup(false);
           }}
           allowClose={true}

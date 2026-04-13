@@ -8,7 +8,7 @@ import { getEpapers } from '../utils/api';
 import EPaperPage2 from '../components/EPaperPage2';
 import ShareButtons from '../components/ShareButtons';
 import SEO from '../components/SEO';
-import { isSubscribed } from '../utils/subscription';
+import { isSubscribed, markPopupShown, isPopupMarkedShown } from '../utils/subscription';
 import SubscribePopup from '../components/SubscribePopup';
 
 const EPaperViewer = () => {
@@ -28,11 +28,9 @@ const EPaperViewer = () => {
     const check = async () => {
       const sub = await isSubscribed();
       if (!sub) {
-        // Only show if this session hasn't seen the popup yet
         if (typeof window !== 'undefined') {
-          const shown = sessionStorage.getItem('navmanch_popup_shown') === 'true';
-          if (shown) return;
-          sessionStorage.setItem('navmanch_popup_shown', 'true');
+          if (isPopupMarkedShown()) return;
+          markPopupShown();
         }
         setShowSubscribePopup(true);
       }
@@ -45,9 +43,7 @@ const EPaperViewer = () => {
     const handleSubscriptionUpdate = () => {
       isSubscribed().then((sub) => {
         if (sub) {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('navmanch_popup_shown', 'true');
-          }
+          markPopupShown();
           setShowSubscribePopup(false);
         }
       }).catch(() => {
@@ -345,9 +341,7 @@ const EPaperViewer = () => {
       <SubscribePopup 
         isOpen={showSubscribePopup} 
         onClose={() => {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('navmanch_popup_shown', 'true');
-          }
+          markPopupShown();
           setShowSubscribePopup(false);
         }}
         allowClose={true}

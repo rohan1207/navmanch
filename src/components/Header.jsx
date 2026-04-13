@@ -2,17 +2,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import SubscribePopup from './SubscribePopup';
 import { useHeader } from '../context/HeaderContext';
-import { isSubscribedSync, isSubscribed, getSubscriberInitial, getSubscription } from '../utils/subscription';
+import {
+  isSubscribedSync,
+  isSubscribed,
+  getSubscriberInitial,
+  getSubscription,
+  markPopupShown,
+  isPopupMarkedShown
+} from '../utils/subscription';
 
 const Header = () => {
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const { isHeaderVisible, headerRef } = useHeader();
-  const location = usePathname();
-  
   const currentDate = new Date().toLocaleDateString('mr-IN', {
     day: 'numeric',
     month: 'long',
@@ -30,10 +34,7 @@ const Header = () => {
         try {
           const stillSubscribed = await isSubscribed(sub.email, sub.phone);
           if (stillSubscribed) {
-            // Backend confirms subscription - update localStorage and set popup flag
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('navmanch_popup_shown', 'true');
-            }
+            markPopupShown();
             // Refresh subscription data
             const updatedSub = getSubscription();
             setSubscription(updatedSub);
@@ -57,8 +58,8 @@ const Header = () => {
       if (e.key === 'navmanch_subscription') {
         checkSubscription();
         // Set popup shown flag when subscription is detected in another tab
-        if (e.newValue && typeof window !== 'undefined') {
-          sessionStorage.setItem('navmanch_popup_shown', 'true');
+        if (e.newValue) {
+          markPopupShown();
         }
       }
     };
@@ -72,32 +73,32 @@ const Header = () => {
     };
   }, []);
 
-  // Timed popup for first visit: show once per session for non-subscribed users
+  // Timed popup: once per app load (same Header mount), not on every route change
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // If already subscribed, never show popup
     if (isSubscribedSync()) {
-      if (isSubscribeOpen) setIsSubscribeOpen(false);
+      setIsSubscribeOpen(false);
       return;
     }
 
-    // Check if popup was already shown or user subscribed in this session
-    const popupKey = 'navmanch_popup_shown';
-    const popupShown = sessionStorage.getItem(popupKey) === 'true';
-    if (popupShown) return;
+    if (isPopupMarkedShown()) return;
 
-    // Show popup after short delay to avoid instant flash
     const timerId = setTimeout(() => {
-      // Re-check before showing
       if (!isSubscribedSync()) {
-        sessionStorage.setItem(popupKey, 'true');
+        markPopupShown();
         setIsSubscribeOpen(true);
       }
     }, 4000);
 
     return () => clearTimeout(timerId);
-  }, [isSubscribeOpen, location, subscription]);
+  }, []);
+
+  useEffect(() => {
+    if (subscription && isSubscribeOpen) {
+      setIsSubscribeOpen(false);
+    }
+  }, [subscription, isSubscribeOpen]);
 
   return (
     <>
@@ -252,9 +253,7 @@ const Header = () => {
       <SubscribePopup 
         isOpen={isSubscribeOpen} 
         onClose={() => {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('navmanch_popup_shown', 'true');
-          }
+          markPopupShown();
           setIsSubscribeOpen(false);
         }}
         allowClose={true}

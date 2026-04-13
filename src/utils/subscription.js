@@ -1,25 +1,34 @@
 // Subscription utility for managing user subscriptions
 const SUBSCRIPTION_KEY = 'navmanch_subscription';
-const SUBSCRIPTION_DURATION = 60 * 24 * 60 * 60 * 1000; // 60 days in milliseconds (approx. 2 months)
+/** Persisted across browser sessions — once set (subscribe or dismiss timed popup), auto-popup stays off */
+export const POPUP_SHOWN_KEY = 'navmanch_popup_shown';
+
+export const markPopupShown = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(POPUP_SHOWN_KEY, 'true');
+  } catch {
+    // private mode, etc.
+  }
+};
+
+export const isPopupMarkedShown = () => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(POPUP_SHOWN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
 
 export const getSubscription = () => {
   if (typeof window === 'undefined') return null;
-  
+
   try {
     const stored = localStorage.getItem(SUBSCRIPTION_KEY);
     if (!stored) return null;
-    
+
     const subscription = JSON.parse(stored);
-    const now = Date.now();
-    
-    // Check if subscription is still valid
-    // If expired, don't remove it immediately - check backend first
-    if (subscription.expiresAt && now > subscription.expiresAt) {
-      // Subscription expired in localStorage, but check backend before removing
-      // Return null for now, but backend check will verify if still subscribed
-      return null;
-    }
-    
     return subscription;
   } catch (error) {
     console.error('Error reading subscription:', error);
@@ -29,17 +38,16 @@ export const getSubscription = () => {
 
 export const setSubscription = (subscriberData) => {
   if (typeof window === 'undefined') return;
-  
+
   try {
     const subscription = {
       ...subscriberData,
-      subscribedAt: Date.now(),
-      expiresAt: Date.now() + SUBSCRIPTION_DURATION
+      subscribedAt: Date.now()
     };
-    
+
     localStorage.setItem(SUBSCRIPTION_KEY, JSON.stringify(subscription));
-    
-    // Dispatch event for other components to listen
+    markPopupShown();
+
     window.dispatchEvent(new CustomEvent('subscriptionUpdated', { detail: subscription }));
   } catch (error) {
     console.error('Error saving subscription:', error);
@@ -48,38 +56,33 @@ export const setSubscription = (subscriberData) => {
 
 // Check subscription with backend API first (using email/phone if available)
 export const isSubscribed = async (email = null, phone = null) => {
-  // If email or phone provided, check with backend
   if (email || phone) {
     try {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
       const response = await fetch(`${API_BASE}/subscribers/check`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, phone }),
+        body: JSON.stringify({ email, phone })
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.exists && data.subscriber) {
-          // Update localStorage with subscriber data
           setSubscription(data.subscriber);
           return true;
         }
       }
     } catch (error) {
       console.error('Error checking subscription with backend:', error);
-      // Fallback to localStorage
     }
   }
-  
-  // Fallback to localStorage check
+
   const subscription = getSubscription();
   return subscription !== null;
 };
 
-// Synchronous version for initial checks (uses localStorage cache)
 export const isSubscribedSync = () => {
   const subscription = getSubscription();
   return subscription !== null;
@@ -92,27 +95,33 @@ export const getSubscriberName = () => {
 
 export const getSubscriberInitial = () => {
   const subscription = getSubscription();
-  if (!subscription?.name) return null;
-  
-  // Get first letter of first word
-  const firstWord = subscription.name.trim().split(' ')[0];
-  return firstWord.charAt(0).toUpperCase();
+  if (!subscription) return null;
+
+  if (subscription.name && String(subscription.name).trim()) {
+    const firstWord = subscription.name.trim().split(' ')[0];
+    return firstWord.charAt(0).toUpperCase();
+  }
+  if (subscription.email) {
+    const ch = subscription.email.trim().charAt(0);
+    return ch ? ch.toUpperCase() : null;
+  }
+  return null;
 };
 
-export const checkSubscriberExists = async (email, phone) => {
+export const checkSubscriberExists = async (email, phone = '') => {
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
     const response = await fetch(`${API_BASE}/subscribers/check`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
-        email: email || '', 
-        phone: phone || '' 
+      body: JSON.stringify({
+        email: email || '',
+        phone: phone || ''
       })
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       return data.exists && data.subscriber ? data.subscriber : null;
@@ -129,4 +138,3 @@ export const clearSubscription = () => {
   localStorage.removeItem(SUBSCRIPTION_KEY);
   window.dispatchEvent(new CustomEvent('subscriptionUpdated', { detail: null }));
 };
-

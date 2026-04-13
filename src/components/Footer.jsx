@@ -111,7 +111,7 @@ const Footer = () => {
                 <FaFacebook className="w-6 h-6" />
               </a>
               <a
-                href="https://twitter.com"
+                href="https://x.com/NAVMANCH_"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-newsRed transition-colors"
@@ -129,7 +129,7 @@ const Footer = () => {
                 <FaInstagram className="w-6 h-6" />
               </a>
               <a
-                href="https://youtube.com"
+                href="https://www.youtube.com/@navmanch"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-newsRed transition-colors"
