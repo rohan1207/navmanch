@@ -569,7 +569,7 @@ const EPaperSection = () => {
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
         // Logo size: 22% of section width or max 180px height (increased for better visibility)
-        logoHeight = Math.min(sectionImg.width * 0.22, 180);
+        logoHeight = Math.min(sectionImg.width * 0.65, 600);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
         // Logo height + top padding (20px) + bottom padding (8px) + line (2px) + line bottom padding (8px)
@@ -581,8 +581,8 @@ const EPaperSection = () => {
 
       // Calculate footer dimensions
       const footerPadding = 20; // Top and bottom padding
-      const footerLineHeight = 18; // Line height for text
-      const footerFontSize = Math.max(13, Math.min(sectionImg.width * 0.022, 16)); // Responsive font size (increased)
+      const footerLineHeight = 66; // Line height for text
+      const footerFontSize = Math.max(32, Math.min(sectionImg.width * 0.75, 75));// Responsive font size (increased)
       const footerLineSpacing = 4; // Spacing between lines
       
       // Prepare footer text
