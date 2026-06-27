@@ -429,15 +429,16 @@ const EPaperSection = () => {
   };
 
   // Format date for footer (Jan 08,2026 format)
-  const formatDateForFooterNew = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    return `${month} ${day},${year}`;
-  };
+  // Format date for footer (Jan 08,2026 format)
+const formatDateForFooterNew = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return `${month} ${day}, ${year}`;   // was: `${month} ${day},${year}`
+};
 
   // Use current origin for sharing; backend social preview ensures OG tags
   // When custom domain points here, origin will be https://navmanchnews.com
@@ -565,11 +566,11 @@ const EPaperSection = () => {
       let logoWidth = 0;
       let logoAreaHeight = 0;
       const lineHeight = 2; // Height of the line below logo (2px)
-      const linePadding = 8; // Padding above and below the line
+      const linePadding = 6; // Padding above and below the line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
         // Logo size: 22% of section width or max 180px height (increased for better visibility)
-        logoHeight = Math.min(sectionImg.width * 0.65, 600);
+        logoHeight = Math.min(sectionImg.width * 0.85, 800);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
         // Logo height + top padding (20px) + bottom padding (8px) + line (2px) + line bottom padding (8px)
@@ -580,16 +581,16 @@ const EPaperSection = () => {
       }
 
       // Calculate footer dimensions
-      const footerPadding = 20; // Top and bottom padding
-      const footerLineHeight = 66; // Line height for text
-      const footerFontSize = Math.max(32, Math.min(sectionImg.width * 0.75, 75));// Responsive font size (increased)
-      const footerLineSpacing = 4; // Spacing between lines
-      
-      // Prepare footer text
-      const editionText = 'Pune Edition';
-      const dateText = formatDateForFooterNew(epaper?.date || '');
-      const pageText = `page No ${page?.pageNo || ''}`;
-      const poweredByText = 'Powered by -navmanchnews.com';
+const footerPadding = 40; // Top and bottom padding
+const footerFontSize = Math.max(32, Math.min(sectionImg.width * 0.75, 75)); // Responsive font size
+const footerLineHeight = Math.round(footerFontSize * 1.5); // was fixed at 70 (smaller than font size → caused the cramped overlap)
+const footerLineSpacing = Math.round(footerFontSize * 0.25); // slight extra breathing room between lines
+
+// Prepare footer text
+const editionText = 'Pune Edition';
+const dateText = formatDateForFooterNew(epaper?.date || '');
+const pageText = `Page No. ${page?.pageNo || ''}`;          // was: `page No ${page?.pageNo || ''}`
+const poweredByText = 'Powered by - navmanchnews.com';       // was: 'Powered by -navmanchnews.com'
       
       // Calculate footer height
       // Line before footer (2px) + padding (8px) + 3 lines of text + spacing + padding
@@ -624,20 +625,21 @@ const EPaperSection = () => {
       
       // Draw edition text (first line)
       ctx.fillStyle = '#000000';
-      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(editionText, canvas.width / 2, footerY);
       
       // Draw date and page number (second line)
-      const secondLineY = footerY + footerLineHeight + footerLineSpacing;
-      ctx.fillStyle = '#000000';
-      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
-      const datePageText = `${dateText}  ${pageText}`;
-      ctx.fillText(datePageText, canvas.width / 2, secondLineY);
+      // Draw date and page number (second line)
+const secondLineY = footerY + footerLineHeight + footerLineSpacing;
+ctx.fillStyle = '#000000';
+ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+const datePageText = `${dateText} ${pageText}`;   // was: `${dateText}  ${pageText}`
+ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       
       // Draw powered by text (third line)
       const thirdLineY = secondLineY + footerLineHeight + footerLineSpacing;
       ctx.fillStyle = '#000000';
-      ctx.font = `bold ${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
+      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
 
       // Draw logo above the clip (centered)
@@ -790,7 +792,7 @@ const EPaperSection = () => {
                 <div className="flex flex-col items-center w-full">
                   {/* Logo - Positioned directly above image with minimal gap, matches image width */}
                   <div className="flex flex-col items-center w-full" style={{ width: `${displayWidth}px`, maxWidth: '100%' }}>
-                    <div className="flex items-center justify-center pt-2 pb-0">
+                    <div className="flex items-center justify-center pt-2 -pb-10">
                     <img
                       src="/logo1.png"
                       alt="नव मंच"
@@ -846,10 +848,10 @@ const EPaperSection = () => {
               {/* Footer Section - Metadata */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2 pb-4">
                 {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-sm md:text-base text-deepCharcoal font-bold">
+                <div className="text-center space-y-1 text-sm md:text-base text-deepCharcoal">
                   <div>Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
-                  <div>Powered by -navmanchnews.com</div>
+                  <div>Powered by - navmanchnews.com</div>
                 </div>
               </div>
             </div>
@@ -905,7 +907,7 @@ const EPaperSection = () => {
               {/* Footer Metadata - Compact */}
               <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2.5 pb-3 px-4">
                 {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-sm text-deepCharcoal font-bold">
+                <div className="text-center space-y-1 text-sm text-deepCharcoal">
                   <div>Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
                   <div>Powered by -navmanchnews.com</div>
