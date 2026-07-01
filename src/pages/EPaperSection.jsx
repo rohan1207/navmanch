@@ -565,21 +565,28 @@ const formatDateForFooterNew = (dateString) => {
       let logoHeight = 0;
       let logoWidth = 0;
       let logoAreaHeight = 0;
+      let logoY = 0;
+      let dividerLineY = 0;
       const lineHeight = 2; // Height of the divider line below logo (2px)
-      const logoTopPadding = 6;
-      const lineGap = 2; // Tight gap between logo and divider line
+      const logoTopPadding = 4;
+      const lineGap = 4; // Slight visible gap between logo and divider line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        // Prominent logo — ~38% of clip width, max 300px height
-        logoHeight = Math.min(sectionImg.width * 0.38, 300);
+        // Large prominent logo — ~52% of clip width, max 420px height
+        logoHeight = Math.min(sectionImg.width * 0.52, 420);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
-        if (logoWidth > sectionImg.width * 0.92) {
-          logoWidth = sectionImg.width * 0.92;
+        if (logoWidth > sectionImg.width * 0.95) {
+          logoWidth = sectionImg.width * 0.95;
           logoHeight = logoWidth / logoAspectRatio;
         }
-        // News clip starts immediately after the divider line — no trailing gap
-        logoAreaHeight = logoTopPadding + logoHeight + lineGap + lineHeight;
+
+        // PNG has transparent padding — lower logo & pull divider line up to remove dead space
+        const logoBottomTrim = Math.round(logoHeight * 0.17);
+        const logoDownshift = Math.round(logoBottomTrim * 0.45);
+        logoY = logoTopPadding + logoDownshift;
+        dividerLineY = logoY + logoHeight - logoBottomTrim + lineGap;
+        logoAreaHeight = dividerLineY + lineHeight;
       } else {
         // If logo fails to load, use watermark approach
         logoAreaHeight = 0;
@@ -647,12 +654,10 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
 
-      // Draw logo above the clip (centered)
+      // Draw logo above the clip (centered, lowered to sit tight against divider)
       if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0) {
         const logoX = (canvas.width - logoWidth) / 2;
-        const logoY = logoTopPadding;
-        
-        // Draw logo
+
         ctx.drawImage(
           logoImg,
           logoX,
@@ -660,11 +665,9 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
           logoWidth,
           logoHeight
         );
-        
-        // Draw minimal bold black line below logo
-        const lineY = logoY + logoHeight + lineGap;
-        ctx.fillStyle = '#000000'; // Black
-        ctx.fillRect(0, lineY, canvas.width, lineHeight);
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, dividerLineY, canvas.width, lineHeight);
       } else if (logoImg.complete && logoImg.naturalWidth > 0) {
         // Fallback: Watermark approach - spread logo with low opacity
         const watermarkSize = Math.min(sectionImg.width * 0.3, 200);
