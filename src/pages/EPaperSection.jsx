@@ -566,15 +566,15 @@ const formatDateForFooterNew = (dateString) => {
       let logoWidth = 0;
       let logoAreaHeight = 0;
       const lineHeight = 2; // Height of the line below logo (2px)
-      const linePadding = 6; // Padding above and below the line
+      const logoTopPadding = 8;
+      const lineGap = 4; // Minimal gap between logo and divider line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        // Logo size: 22% of section width or max 180px height (increased for better visibility)
-        logoHeight = Math.min(sectionImg.width * 0.85, 800);
+        // Match on-screen logo size (~h-32/h-40): ~18% of clip width, max 160px height
+        logoHeight = Math.min(sectionImg.width * 0.18, 160);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
-        // Logo height + top padding (20px) + bottom padding (8px) + line (2px) + line bottom padding (8px)
-        logoAreaHeight = logoHeight + 20 + linePadding + lineHeight + linePadding;
+        logoAreaHeight = logoTopPadding + logoHeight + lineGap + lineHeight + 2;
       } else {
         // If logo fails to load, use watermark approach
         logoAreaHeight = 0;
@@ -590,7 +590,7 @@ const footerLineSpacing = Math.round(footerFontSize * 0.25); // slight extra bre
 const editionText = 'Pune Edition';
 const dateText = formatDateForFooterNew(epaper?.date || '');
 const pageText = `Page No. ${page?.pageNo || ''}`;          // was: `page No ${page?.pageNo || ''}`
-const poweredByText = 'Powered by - navmanchnews.com';       // was: 'Powered by -navmanchnews.com'
+const poweredByText = 'Powered by : navmanchnews.com';
       
       // Calculate footer height
       // Line before footer (2px) + padding (8px) + 3 lines of text + spacing + padding
@@ -645,7 +645,7 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       // Draw logo above the clip (centered)
       if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0) {
         const logoX = (canvas.width - logoWidth) / 2;
-        const logoY = 20; // 20px from top
+        const logoY = logoTopPadding;
         
         // Draw logo
         ctx.drawImage(
@@ -657,7 +657,7 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
         );
         
         // Draw minimal bold black line below logo
-        const lineY = logoY + logoHeight + linePadding;
+        const lineY = logoY + logoHeight + lineGap;
         ctx.fillStyle = '#000000'; // Black
         ctx.fillRect(0, lineY, canvas.width, lineHeight);
       } else if (logoImg.complete && logoImg.naturalWidth > 0) {
@@ -851,7 +851,7 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
                 <div className="text-center space-y-1 text-sm md:text-base text-deepCharcoal">
                   <div>Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
-                  <div>Powered by - navmanchnews.com</div>
+                  <div>Powered by : navmanchnews.com</div>
                 </div>
               </div>
             </div>
@@ -910,7 +910,7 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
                 <div className="text-center space-y-1 text-sm text-deepCharcoal">
                   <div>Pune Edition</div>
                   <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
-                  <div>Powered by -navmanchnews.com</div>
+                  <div>Powered by : navmanchnews.com</div>
                 </div>
               </div>
             </div>
