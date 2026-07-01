@@ -525,6 +525,64 @@ const formatDateForFooterNew = (dateString) => {
   // Use full page image for section share cards (more reliable than cropped section)
   const shareImage = getAbsoluteImageUrl(page?.image || epaper?.thumbnail || '');
 
+  // Trim transparent padding from PNG logo so layout uses visible content only
+  const getLogoContentBounds = (img) => {
+    const probe = document.createElement('canvas');
+    probe.width = img.naturalWidth;
+    probe.height = img.naturalHeight;
+    const probeCtx = probe.getContext('2d');
+    probeCtx.drawImage(img, 0, 0);
+    const { data, width, height } = probeCtx.getImageData(0, 0, probe.width, probe.height);
+
+    let top = 0;
+    let bottom = height - 1;
+    let left = 0;
+    let right = width - 1;
+
+    outerTop: for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] > 10) {
+          top = y;
+          break outerTop;
+        }
+      }
+    }
+
+    outerBottom: for (let y = height - 1; y >= top; y--) {
+      for (let x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] > 10) {
+          bottom = y;
+          break outerBottom;
+        }
+      }
+    }
+
+    outerLeft: for (let x = 0; x < width; x++) {
+      for (let y = top; y <= bottom; y++) {
+        if (data[(y * width + x) * 4 + 3] > 10) {
+          left = x;
+          break outerLeft;
+        }
+      }
+    }
+
+    outerRight: for (let x = width - 1; x >= left; x--) {
+      for (let y = top; y <= bottom; y++) {
+        if (data[(y * width + x) * 4 + 3] > 10) {
+          right = x;
+          break outerRight;
+        }
+      }
+    }
+
+    return {
+      sx: left,
+      sy: top,
+      sw: Math.max(1, right - left + 1),
+      sh: Math.max(1, bottom - top + 1),
+    };
+  };
+
   // Download section image with logo on top
   const downloadSectionWithLogo = async (sectionImageUrl, sectionTitle) => {
     // Check subscription before allowing download
@@ -567,25 +625,26 @@ const formatDateForFooterNew = (dateString) => {
       let logoAreaHeight = 0;
       let logoY = 0;
       let dividerLineY = 0;
-      const lineHeight = 2; // Height of the divider line below logo (2px)
-      const logoTopPadding = 4;
-      const lineGap = 4; // Slight visible gap between logo and divider line
+      let logoSrc = null;
+      const lineHeight = 2;
+      const lineGap = 2; // Minimal gap — logo sits almost on the divider line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        // Large prominent logo — ~52% of clip width, max 420px height
-        logoHeight = Math.min(sectionImg.width * 0.52, 420);
-        const logoAspectRatio = logoImg.width / logoImg.height;
-        logoWidth = logoHeight * logoAspectRatio;
-        if (logoWidth > sectionImg.width * 0.95) {
-          logoWidth = sectionImg.width * 0.95;
-          logoHeight = logoWidth / logoAspectRatio;
+        logoSrc = getLogoContentBounds(logoImg);
+
+        // Large logo from visible PNG content only (ignores transparent padding)
+        logoHeight = Math.min(sectionImg.width * 0.65, 560);
+        const contentAspect = logoSrc.sw / logoSrc.sh;
+        logoWidth = logoHeight * contentAspect;
+        if (logoWidth > sectionImg.width * 0.98) {
+          logoWidth = sectionImg.width * 0.98;
+          logoHeight = logoWidth / contentAspect;
         }
 
-        // PNG has transparent padding — lower logo & pull divider line up to remove dead space
-        const logoBottomTrim = Math.round(logoHeight * 0.17);
-        const logoDownshift = Math.round(logoBottomTrim * 0.45);
-        logoY = logoTopPadding + logoDownshift;
-        dividerLineY = logoY + logoHeight - logoBottomTrim + lineGap;
+        // Shift logo down — slight overlap onto divider line is fine (PNG transparency)
+        const logoOverlap = 6;
+        logoY = 0;
+        dividerLineY = logoY + logoHeight - logoOverlap + lineGap;
         logoAreaHeight = dividerLineY + lineHeight;
       } else {
         // If logo fails to load, use watermark approach
@@ -654,20 +713,24 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
       ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
 
-      // Draw logo above the clip (centered, lowered to sit tight against divider)
-      if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0) {
+      // Draw divider line first, then logo on top (logo may slightly overlap the line)
+      if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0 && logoSrc) {
         const logoX = (canvas.width - logoWidth) / 2;
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, dividerLineY, canvas.width, lineHeight);
 
         ctx.drawImage(
           logoImg,
+          logoSrc.sx,
+          logoSrc.sy,
+          logoSrc.sw,
+          logoSrc.sh,
           logoX,
           logoY,
           logoWidth,
           logoHeight
         );
-
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, dividerLineY, canvas.width, lineHeight);
       } else if (logoImg.complete && logoImg.naturalWidth > 0) {
         // Fallback: Watermark approach - spread logo with low opacity
         const watermarkSize = Math.min(sectionImg.width * 0.3, 200);
