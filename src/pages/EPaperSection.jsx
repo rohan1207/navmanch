@@ -633,7 +633,7 @@ const formatDateForFooterNew = (dateString) => {
         logoSrc = getLogoContentBounds(logoImg);
 
         // Large logo from visible PNG content only (ignores transparent padding)
-        logoHeight = Math.min(sectionImg.width * 0.65, 560);
+        logoHeight = Math.min(sectionImg.width * 0.45, 460);
         const contentAspect = logoSrc.sw / logoSrc.sh;
         logoWidth = logoHeight * contentAspect;
         if (logoWidth > sectionImg.width * 0.98) {
