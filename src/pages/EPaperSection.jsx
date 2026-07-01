@@ -565,26 +565,31 @@ const formatDateForFooterNew = (dateString) => {
       let logoHeight = 0;
       let logoWidth = 0;
       let logoAreaHeight = 0;
-      const lineHeight = 2; // Height of the line below logo (2px)
-      const logoTopPadding = 8;
-      const lineGap = 4; // Minimal gap between logo and divider line
+      const lineHeight = 2; // Height of the divider line below logo (2px)
+      const logoTopPadding = 6;
+      const lineGap = 2; // Tight gap between logo and divider line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
-        // Match on-screen logo size (~h-32/h-40): ~18% of clip width, max 160px height
-        logoHeight = Math.min(sectionImg.width * 0.18, 160);
+        // Prominent logo — ~38% of clip width, max 300px height
+        logoHeight = Math.min(sectionImg.width * 0.38, 300);
         const logoAspectRatio = logoImg.width / logoImg.height;
         logoWidth = logoHeight * logoAspectRatio;
-        logoAreaHeight = logoTopPadding + logoHeight + lineGap + lineHeight + 2;
+        if (logoWidth > sectionImg.width * 0.92) {
+          logoWidth = sectionImg.width * 0.92;
+          logoHeight = logoWidth / logoAspectRatio;
+        }
+        // News clip starts immediately after the divider line — no trailing gap
+        logoAreaHeight = logoTopPadding + logoHeight + lineGap + lineHeight;
       } else {
         // If logo fails to load, use watermark approach
         logoAreaHeight = 0;
       }
 
       // Calculate footer dimensions
-const footerPadding = 40; // Top and bottom padding
-const footerFontSize = Math.max(32, Math.min(sectionImg.width * 0.75, 75)); // Responsive font size
-const footerLineHeight = Math.round(footerFontSize * 1.5); // was fixed at 70 (smaller than font size → caused the cramped overlap)
-const footerLineSpacing = Math.round(footerFontSize * 0.25); // slight extra breathing room between lines
+const footerPadding = 32; // Top and bottom padding
+const footerFontSize = Math.max(28, Math.min(sectionImg.width * 0.065, 62)); // Slightly smaller footer text
+const footerLineHeight = Math.round(footerFontSize * 1.32); // Tighter line height
+const footerLineSpacing = Math.round(footerFontSize * 0.18); // Slightly less spacing between lines
 
 // Prepare footer text
 const editionText = 'Pune Edition';
