@@ -627,24 +627,22 @@ const formatDateForFooterNew = (dateString) => {
       let dividerLineY = 0;
       let logoSrc = null;
       const lineHeight = 2;
-      const lineGap = 2; // Minimal gap — logo sits almost on the divider line
+      const lineGap = 8; // Very slight gap between logo and divider line
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
         logoSrc = getLogoContentBounds(logoImg);
 
-        // Large logo from visible PNG content only (ignores transparent padding)
-        logoHeight = Math.min(sectionImg.width * 0.45, 460);
+        // Moderate logo size from visible PNG content only
+        logoHeight = Math.min(sectionImg.width * 0.34, 300);
         const contentAspect = logoSrc.sw / logoSrc.sh;
         logoWidth = logoHeight * contentAspect;
-        if (logoWidth > sectionImg.width * 0.98) {
-          logoWidth = sectionImg.width * 0.98;
+        if (logoWidth > sectionImg.width * 0.92) {
+          logoWidth = sectionImg.width * 0.92;
           logoHeight = logoWidth / contentAspect;
         }
 
-        // Shift logo down — slight overlap onto divider line is fine (PNG transparency)
-        const logoOverlap = 6;
-        logoY = 0;
-        dividerLineY = logoY + logoHeight - logoOverlap + lineGap;
+        logoY = 4;
+        dividerLineY = logoY + logoHeight + lineGap;
         logoAreaHeight = dividerLineY + lineHeight;
       } else {
         // If logo fails to load, use watermark approach
