@@ -619,105 +619,76 @@ const formatDateForFooterNew = (dateString) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Calculate logo dimensions
+      // ── Header (Pudhari-style): large centered logo → tiny gap → thin line → news ──
       let logoHeight = 0;
       let logoWidth = 0;
       let logoAreaHeight = 0;
       let logoY = 0;
       let dividerLineY = 0;
       let logoSrc = null;
-      const lineHeight = 2;
-      const lineGap = 8; // Very slight gap between logo and divider line
+      const dividerLineThickness = 1;
+      const logoTopPad = Math.max(10, Math.round(sectionImg.width * 0.012));
+      const logoToLineGap = Math.max(6, Math.round(sectionImg.width * 0.008)); // slight gap like Pudhari
       
       if (logoImg.complete && logoImg.naturalWidth > 0) {
         logoSrc = getLogoContentBounds(logoImg);
 
-        // Moderate logo size from visible PNG content only
-        logoHeight = Math.min(sectionImg.width * 0.30, 280);
+        // Visible logo ~28% of clip width (Pudhari-like prominence, not oversized)
+        logoHeight = Math.min(sectionImg.width * 0.28, 240);
         const contentAspect = logoSrc.sw / logoSrc.sh;
         logoWidth = logoHeight * contentAspect;
-        if (logoWidth > sectionImg.width * 0.92) {
-          logoWidth = sectionImg.width * 0.92;
+        if (logoWidth > sectionImg.width * 0.72) {
+          logoWidth = sectionImg.width * 0.72;
           logoHeight = logoWidth / contentAspect;
         }
 
-        logoY = 4;
-        dividerLineY = logoY + logoHeight + lineGap;
-        logoAreaHeight = dividerLineY + lineHeight;
-      } else {
-        // If logo fails to load, use watermark approach
-        logoAreaHeight = 0;
+        logoY = logoTopPad;
+        dividerLineY = logoY + logoHeight + logoToLineGap;
+        logoAreaHeight = dividerLineY + dividerLineThickness;
       }
 
-      // Calculate footer dimensions
-const footerPadding = 32; // Top and bottom padding
-const footerFontSize = Math.max(28, Math.min(sectionImg.width * 0.065, 62)); // Slightly smaller footer text
-const footerLineHeight = Math.round(footerFontSize * 1.32); // Tighter line height
-const footerLineSpacing = Math.round(footerFontSize * 0.18); // Slightly less spacing between lines
+      // ── Footer (Pudhari-style): thin line → CMYK bars → tight Arial metadata ──
+      const pageNoPadded = String(page?.pageNo || '').padStart(2, '0');
+      const editionText = 'Pune Edition';
+      const datePageText = `${formatDateForFooterNew(epaper?.date || '')} Page No. ${pageNoPadded}`;
+      const poweredByText = 'Powered by: navmanchnews.com';
 
-// Prepare footer text
-const editionText = 'Pune Edition';
-const dateText = formatDateForFooterNew(epaper?.date || '');
-const pageText = `Page No. ${page?.pageNo || ''}`;          // was: `page No ${page?.pageNo || ''}`
-const poweredByText = 'Powered by : navmanchnews.com';
-      
-      // Calculate footer height
-      // Line before footer (2px) + padding (8px) + 3 lines of text + spacing + padding
-      const footerLineHeight_px = 2; // Height of the line before footer
-      const footerLinePadding = 8; // Padding above line
-      const footerHeight = footerLineHeight_px + footerLinePadding + (footerLineHeight * 3) + (footerLineSpacing * 2) + (footerPadding * 2);
+      // Scale footer from clip width so it stays small relative to news (like Pudhari)
+      const footerFontSize = Math.max(18, Math.min(Math.round(sectionImg.width * 0.028), 36));
+      const poweredFontSize = Math.max(16, Math.round(footerFontSize * 0.9));
+      const footerLineStep = Math.round(footerFontSize * 1.18); // tight leading
+      const footerTopPad = Math.max(18, Math.round(sectionImg.width * 0.018));
+      const footerBottomPad = Math.max(16, Math.round(sectionImg.width * 0.016));
+      const cmykSize = Math.max(10, Math.round(sectionImg.width * 0.014));
+      const cmykGap = Math.max(4, Math.round(cmykSize * 0.35));
+      const cmykToTextGap = Math.max(10, Math.round(footerFontSize * 0.55));
+      const footerDividerPad = Math.max(10, Math.round(sectionImg.width * 0.01));
+      const footerDividerThickness = 1;
+      const footerTextBlockH = footerLineStep * 2 + poweredFontSize; // 3 lines, last uses smaller size
+      const footerHeight =
+        footerDividerPad +
+        footerDividerThickness +
+        footerTopPad +
+        cmykSize +
+        cmykToTextGap +
+        footerTextBlockH +
+        footerBottomPad;
 
-      // Set canvas size: section width, extended height (section + logo area + footer)
       canvas.width = sectionImg.width;
       canvas.height = sectionImg.height + logoAreaHeight + footerHeight;
 
-      // Fill white background
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw section image below logo area
+      // News clip
       ctx.drawImage(sectionImg, 0, logoAreaHeight);
 
-      // Draw line before footer
-      const footerLineY = sectionImg.height + logoAreaHeight + footerLinePadding;
-      ctx.fillStyle = '#000000'; // Black
-      ctx.fillRect(0, footerLineY, canvas.width, 2);
-      
-      // Draw footer at the bottom
-      const footerY = footerLineY + footerLinePadding + footerPadding;
-      
-      // Set font properties - Use system fonts that support Devanagari
-      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Hindi', 'Hind', Arial, sans-serif`;
-      ctx.fillStyle = '#000000'; // Black color for metadata
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      
-      // Draw edition text (first line)
-      ctx.fillStyle = '#000000';
-      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
-      ctx.fillText(editionText, canvas.width / 2, footerY);
-      
-      // Draw date and page number (second line)
-      // Draw date and page number (second line)
-const secondLineY = footerY + footerLineHeight + footerLineSpacing;
-ctx.fillStyle = '#000000';
-ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
-const datePageText = `${dateText} ${pageText}`;   // was: `${dateText}  ${pageText}`
-ctx.fillText(datePageText, canvas.width / 2, secondLineY);
-      
-      // Draw powered by text (third line)
-      const thirdLineY = secondLineY + footerLineHeight + footerLineSpacing;
-      ctx.fillStyle = '#000000';
-      ctx.font = `${footerFontSize}px 'Mukta', 'Noto Sans Devanagari', Arial, sans-serif`;
-      ctx.fillText(poweredByText, canvas.width / 2, thirdLineY);
-
-      // Draw divider line first, then logo on top (logo may slightly overlap the line)
+      // Header divider (pale pink like Pudhari) + logo
       if (logoImg.complete && logoImg.naturalWidth > 0 && logoAreaHeight > 0 && logoSrc) {
+        ctx.fillStyle = '#F5C6C6';
+        ctx.fillRect(0, dividerLineY, canvas.width, dividerLineThickness);
+
         const logoX = (canvas.width - logoWidth) / 2;
-
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, dividerLineY, canvas.width, lineHeight);
-
         ctx.drawImage(
           logoImg,
           logoSrc.sx,
@@ -729,28 +700,39 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
           logoWidth,
           logoHeight
         );
-      } else if (logoImg.complete && logoImg.naturalWidth > 0) {
-        // Fallback: Watermark approach - spread logo with low opacity
-        const watermarkSize = Math.min(sectionImg.width * 0.3, 200);
-        const watermarkAspectRatio = logoImg.width / logoImg.height;
-        const watermarkWidth = watermarkSize * watermarkAspectRatio;
-        const watermarkHeight = watermarkSize;
-        
-        // Save context for opacity
-        ctx.save();
-        ctx.globalAlpha = 0.15; // Low opacity for watermark effect
-        
-        // Draw watermark in center
-        ctx.drawImage(
-          logoImg,
-          (sectionImg.width - watermarkWidth) / 2,
-          (sectionImg.height - watermarkHeight) / 2,
-          watermarkWidth,
-          watermarkHeight
-        );
-        
-        ctx.restore();
       }
+
+      // Footer divider
+      const footerLineY = logoAreaHeight + sectionImg.height + footerDividerPad;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, footerLineY, canvas.width, footerDividerThickness);
+
+      // CMYK color bars (Pudhari)
+      const cmykColors = ['#00AEEF', '#EC008C', '#FFF200', '#000000', '#B0B0B0'];
+      const cmykTotalW = cmykColors.length * cmykSize + (cmykColors.length - 1) * cmykGap;
+      let cmykX = (canvas.width - cmykTotalW) / 2;
+      const cmykY = footerLineY + footerDividerThickness + footerTopPad;
+      cmykColors.forEach((color) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(cmykX, cmykY, cmykSize, cmykSize);
+        cmykX += cmykSize + cmykGap;
+      });
+
+      // Footer text — Arial/Helvetica, regular weight, tight stack
+      const footerFont = 'Arial, Helvetica, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#000000';
+
+      const footerTextY = cmykY + cmykSize + cmykToTextGap;
+      ctx.font = `${footerFontSize}px ${footerFont}`;
+      ctx.fillText(editionText, canvas.width / 2, footerTextY);
+
+      ctx.font = `${footerFontSize}px ${footerFont}`;
+      ctx.fillText(datePageText, canvas.width / 2, footerTextY + footerLineStep);
+
+      ctx.font = `${poweredFontSize}px ${footerFont}`;
+      ctx.fillText(poweredByText, canvas.width / 2, footerTextY + footerLineStep * 2);
 
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -853,27 +835,31 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
       {/* Main Content */}
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="max-w-6xl mx-auto">
-          {/* Desktop: Full layout with logo and footer */}
+          {/* Desktop: Full layout with logo and footer (Pudhari-style) */}
           <div className="hidden md:block">
             {/* Image Container with Logo Above - Adapts to image width */}
             <div className="bg-cleanWhite overflow-hidden rounded-t-xl flex flex-col items-center">
               {croppedImageUrl ? (
                 <div className="flex flex-col items-center w-full">
-                  {/* Logo - Positioned directly above image with minimal gap, matches image width */}
+                  {/* Logo — prominent, tiny gap to thin line (Pudhari) */}
                   <div className="flex flex-col items-center w-full" style={{ width: `${displayWidth}px`, maxWidth: '100%' }}>
-                    <div className="flex items-center justify-center pt-2 -pb-10">
-                    <img
-                      src="/logo1.png"
-                      alt="नव मंच"
-                      className="h-32 md:h-40 w-auto"
-                    />
+                    <div className="flex items-center justify-center pt-3 pb-0">
+                      <img
+                        src="/logo1.png"
+                        alt="नव मंच"
+                        className="h-20 md:h-24 w-auto"
+                        style={{ display: 'block' }}
+                      />
                     </div>
-                    {/* Minimal bold black line below logo */}
-                    <div className="w-full h-0.5 bg-black my-2" style={{ maxWidth: `${displayWidth}px` }}></div>
+                    {/* Thin pale line directly under logo */}
+                    <div
+                      className="w-full"
+                      style={{ maxWidth: `${displayWidth}px`, height: '1px', backgroundColor: '#F5C6C6', marginTop: '6px', marginBottom: '0' }}
+                    />
                   </div>
                   
-                  {/* Cropped Image */}
-                  <div className="flex items-center justify-center pt-1 px-2">
+                  {/* Cropped Image — almost flush under line */}
+                  <div className="flex items-center justify-center px-2" style={{ paddingTop: '2px' }}>
                     <img
                       src={croppedImageUrl}
                       alt={getCleanSectionTitle()}
@@ -898,10 +884,10 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
               )}
             </div>
             
-            {/* Download Button and Footer Section - Inside clip container */}
-            <div className="bg-cleanWhite rounded-b-xl pt-4 pb-6">
+            {/* Download Button and Footer Section */}
+            <div className="bg-cleanWhite rounded-b-xl pt-3 pb-5">
               {/* Download Button */}
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-3">
                 <button
                   onClick={() => downloadSectionWithLogo(croppedImageUrl || page.image, getCleanSectionTitle())}
                   className="flex items-center gap-2 px-5 py-2.5 bg-newsRed text-white rounded-full font-semibold hover:bg-newsRed/90 transition-colors shadow-md hover:shadow-lg"
@@ -911,16 +897,23 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
                 </button>
               </div>
               
-              {/* Line before footer */}
-              <div className="w-full h-0.5 bg-black my-4"></div>
+              {/* Thin footer divider */}
+              <div className="w-full mx-auto" style={{ height: '1px', backgroundColor: '#000', maxWidth: `${displayWidth}px` }} />
               
-              {/* Footer Section - Metadata */}
-              <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2 pb-4">
-                {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-sm md:text-base text-deepCharcoal">
+              {/* Footer — Pudhari compact Arial stack */}
+              <div className="pt-4 pb-3">
+                <div className="flex justify-center gap-1.5 mb-2.5">
+                  {['#00AEEF', '#EC008C', '#FFF200', '#000000', '#B0B0B0'].map((c) => (
+                    <span key={c} style={{ width: 12, height: 12, backgroundColor: c, display: 'inline-block' }} />
+                  ))}
+                </div>
+                <div
+                  className="text-center text-black"
+                  style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 400, lineHeight: 1.2, fontSize: '13px' }}
+                >
                   <div>Pune Edition</div>
-                  <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
-                  <div>Powered by : navmanchnews.com</div>
+                  <div>{formatDateForFooterNew(epaper.date)} Page No. {String(page.pageNo).padStart(2, '0')}</div>
+                  <div style={{ fontSize: '12px' }}>Powered by: navmanchnews.com</div>
                 </div>
               </div>
             </div>
@@ -928,18 +921,18 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
 
           {/* Mobile: Full screen scrollable view with fixed header and footer */}
           <div className="md:hidden fixed inset-0 bg-cleanWhite flex flex-col" style={{ top: '48px', bottom: 0, height: 'calc(100vh - 48px)' }}>
-            {/* Logo - Fixed at top, minimal padding */}
-            <div className="flex-shrink-0 bg-cleanWhite border-b border-subtleGray/30 py-2 px-0 flex flex-col items-center">
-                <img
-                  src="/logo1.png"
-                  alt="नव मंच"
-                  className="h-32 w-auto"
-                />
-              {/* Minimal bold black line below logo */}
-              <div className="w-full h-0.5 bg-black mt-2"></div>
-              </div>
+            {/* Logo — Pudhari-style compact header */}
+            <div className="flex-shrink-0 bg-cleanWhite flex flex-col items-center pt-2 pb-0">
+              <img
+                src="/logo1.png"
+                alt="नव मंच"
+                className="h-16 w-auto"
+                style={{ display: 'block' }}
+              />
+              <div className="w-full" style={{ height: '1px', backgroundColor: '#F5C6C6', marginTop: '5px' }} />
+            </div>
               
-            {/* Scrollable Image Container - Full width, scrollable, shows top initially */}
+            {/* Scrollable Image Container */}
             {croppedImageUrl && (
               <div 
                 className="flex-1 overflow-y-auto overflow-x-hidden bg-cleanWhite relative" 
@@ -956,30 +949,35 @@ ctx.fillText(datePageText, canvas.width / 2, secondLineY);
               </div>
             )}
             
-            {/* Footer Section - Fixed at bottom, minimal padding */}
-            <div className="flex-shrink-0 bg-cleanWhite border-t border-subtleGray/30">
+            {/* Footer Section - Fixed at bottom */}
+            <div className="flex-shrink-0 bg-cleanWhite">
               {/* Download Button */}
-              <div className="flex items-center justify-center py-2.5 px-4">
-              <button
-                onClick={() => downloadSectionWithLogo(croppedImageUrl || page.image, getCleanSectionTitle())}
+              <div className="flex items-center justify-center py-2 px-4">
+                <button
+                  onClick={() => downloadSectionWithLogo(croppedImageUrl || page.image, getCleanSectionTitle())}
                   className="flex items-center justify-center gap-2 px-5 py-2.5 bg-newsRed text-white rounded-full font-semibold hover:bg-newsRed/90 transition-colors shadow-lg"
                   style={{ touchAction: 'auto' }}
-              >
+                >
                   <FaDownload className="w-4 h-4" />
                   <span className="text-sm">क्लिप डाउनलोड करा</span>
-              </button>
+                </button>
               </div>
               
-              {/* Line before footer */}
-              <div className="w-full h-0.5 bg-black mx-4"></div>
+              <div className="w-full" style={{ height: '1px', backgroundColor: '#000' }} />
               
-              {/* Footer Metadata - Compact */}
-              <div className="bg-gradient-to-b from-subtleGray/10 to-cleanWhite pt-2.5 pb-3 px-4">
-                {/* Footer text - 3 lines */}
-                <div className="text-center space-y-1 text-sm text-deepCharcoal">
+              <div className="pt-3 pb-2.5 px-4">
+                <div className="flex justify-center gap-1 mb-2">
+                  {['#00AEEF', '#EC008C', '#FFF200', '#000000', '#B0B0B0'].map((c) => (
+                    <span key={c} style={{ width: 10, height: 10, backgroundColor: c, display: 'inline-block' }} />
+                  ))}
+                </div>
+                <div
+                  className="text-center text-black"
+                  style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 400, lineHeight: 1.2, fontSize: '12px' }}
+                >
                   <div>Pune Edition</div>
-                  <div>{formatDateForFooterNew(epaper.date)}  page No {page.pageNo}</div>
-                  <div>Powered by : navmanchnews.com</div>
+                  <div>{formatDateForFooterNew(epaper.date)} Page No. {String(page.pageNo).padStart(2, '0')}</div>
+                  <div style={{ fontSize: '11px' }}>Powered by: navmanchnews.com</div>
                 </div>
               </div>
             </div>
